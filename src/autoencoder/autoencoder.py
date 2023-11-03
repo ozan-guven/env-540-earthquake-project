@@ -15,7 +15,7 @@ class ConvAutoencoder(nn.Module):
             decoder_channels (List[int]): list of channel sizes for the decoder, 
                                           including the output channel size.
         """
-        super(ConvAutoencoder, self).__init__()
+        super().__init__()
         
         # Encoder
         self.encoder = nn.Sequential()
@@ -25,27 +25,28 @@ class ConvAutoencoder(nn.Module):
                 nn.Conv2d(encoder_channels[i], encoder_channels[i+1], kernel_size=3, stride=2, padding=1)
             )
             self.encoder.add_module(f"enc_relu{i}", nn.ReLU(True))
-            self.encoder.add_module(f"enc_batchnorm{i}", nn.BatchNorm2d(encoder_channels[i+1]))
 
         # Decoder
         self.decoder = nn.Sequential()
         for i in range(len(decoder_channels) - 1):
+            # Ensure that ConvTranspose2d layers are structured to upsample correctly
             self.decoder.add_module(
                 f"dec_convtrans{i}",
-                nn.ConvTranspose2d(decoder_channels[i], decoder_channels[i+1], kernel_size=3, stride=2, padding=1, output_padding=1)
+                nn.ConvTranspose2d(
+                    decoder_channels[i],
+                    decoder_channels[i+1],
+                    kernel_size=3,
+                    stride=2,  # This might need to be adjusted for your specific architecture
+                    padding=1,
+                    output_padding=1  # This might need to be adjusted as well
+                )
             )
-            self.decoder.add_module(f"dec_relu{i}", nn.ReLU(True))
-            self.decoder.add_module(f"dec_batchnorm{i}", nn.BatchNorm2d(decoder_channels[i+1]))
-        
-        # Last layer of decoder without ReLU to allow for the full range of pixel values
-        self.decoder.add_module(
-            "dec_final",
-            nn.ConvTranspose2d(decoder_channels[-2], decoder_channels[-1], kernel_size=3, stride=2, padding=1, output_padding=1)
-        )
-        self.decoder.add_module("dec_final_activation", nn.Sigmoid())  # Assuming the input images are normalized between [0, 1]
+            if i < len(decoder_channels) - 2:  # Add ReLU and BatchNorm only for intermediate layers
+                self.decoder.add_module(f"dec_relu{i}", nn.ReLU(True))
 
     def forward(self, x):
+        print(self.encoder)
+        print(self.decoder)
         x = self.encoder(x)
-        print(x.shape)
         x = self.decoder(x)
         return x
