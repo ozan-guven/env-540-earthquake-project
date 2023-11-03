@@ -12,7 +12,7 @@ from tqdm.notebook import tqdm
 
 class Trainer():
     """
-        Trainer class used to train a model.
+    Trainer class used to train a model.
     """
 
     def __init__(
