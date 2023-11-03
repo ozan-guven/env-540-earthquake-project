@@ -6,8 +6,6 @@ import torch
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
-DATA_PATH = '../../data/'
-
 class SatelliteImageDataset(Dataset):
     def __init__(self, directory, image_size=17408, patch_size=1024, max_cache_size=256):
         self.image_size = image_size
@@ -61,4 +59,4 @@ class SatelliteImageDataset(Dataset):
 
         image = image.resize((1024, 1024))
 
-        return image, patch
+        return patch
