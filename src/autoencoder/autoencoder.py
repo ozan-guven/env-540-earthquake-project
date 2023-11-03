@@ -4,49 +4,47 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-class Autoencoder(nn.Module):
-    """
-    Autoencoder class.
-    """
-    def __init__(self, layer_sizes: List[int]):
-        """Initialize the autoencoder.
-
-        Args:
-            layer_sizes (List[int]): list of layer sizes for the encoder and decoder. The first half of the list is used for the encoder, the second half for the decoder.
-
-        Raises:
-            ValueError: if the layer sizes list is not even
+class ConvAutoencoder(nn.Module):
+    def __init__(self, encoder_channels: List[int], decoder_channels: List[int]):
         """
-        super(Autoencoder, self).__init__()
+        Initialize the convolutional autoencoder.
         
-        # Check if the layer sizes list is even
-        if len(layer_sizes) % 2 != 0:
-            raise ValueError("❌ Layer sizes list should contain an even number of elements")
+        Args:
+            encoder_channels (List[int]): list of channel sizes for the encoder, 
+                                          including the input channel size.
+            decoder_channels (List[int]): list of channel sizes for the decoder, 
+                                          including the output channel size.
+        """
+        super(ConvAutoencoder, self).__init__()
         
-        # Define the encoder part
-        self.encoder_layers = nn.ModuleList()
-        for i in range(len(layer_sizes) // 2 - 1):
-            self.encoder_layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
-            self.encoder_layers.append(nn.ReLU(True))
-        self.encoder_layers.append(nn.Linear(layer_sizes[len(layer_sizes)//2 - 1], layer_sizes[len(layer_sizes)//2]))
-        
-        # Define the decoder part
-        self.decoder_layers = nn.ModuleList()
-        for i in range(len(layer_sizes) // 2, len(layer_sizes) - 1):
-            self.decoder_layers.append(nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
-            self.decoder_layers.append(nn.ReLU(True))
-        self.decoder_layers.append(nn.Linear(layer_sizes[-2], layer_sizes[-1]))
-        
-    def forward(self, x):
         # Encoder
-        for layer in self.encoder_layers:
-            x = layer(x)
-        
+        self.encoder = nn.Sequential()
+        for i in range(len(encoder_channels) - 1):
+            self.encoder.add_module(
+                f"enc_conv{i}",
+                nn.Conv2d(encoder_channels[i], encoder_channels[i+1], kernel_size=3, stride=2, padding=1)
+            )
+            self.encoder.add_module(f"enc_relu{i}", nn.ReLU(True))
+            self.encoder.add_module(f"enc_batchnorm{i}", nn.BatchNorm2d(encoder_channels[i+1]))
+
         # Decoder
-        for layer in self.decoder_layers[:-1]:
-            x = layer(x)
-        # Apply sigmoid to the output layer to scale the output between 0 and 1
-        x = torch.sigmoid(self.decoder_layers[-1](x))
+        self.decoder = nn.Sequential()
+        for i in range(len(decoder_channels) - 1):
+            self.decoder.add_module(
+                f"dec_convtrans{i}",
+                nn.ConvTranspose2d(decoder_channels[i], decoder_channels[i+1], kernel_size=3, stride=2, padding=1, output_padding=1)
+            )
+            self.decoder.add_module(f"dec_relu{i}", nn.ReLU(True))
+            self.decoder.add_module(f"dec_batchnorm{i}", nn.BatchNorm2d(decoder_channels[i+1]))
         
+        # Last layer of decoder without ReLU to allow for the full range of pixel values
+        self.decoder.add_module(
+            "dec_final",
+            nn.ConvTranspose2d(decoder_channels[-2], decoder_channels[-1], kernel_size=3, stride=2, padding=1, output_padding=1)
+        )
+        self.decoder.add_module("dec_final_activation", nn.Sigmoid())  # Assuming the input images are normalized between [0, 1]
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
         return x
