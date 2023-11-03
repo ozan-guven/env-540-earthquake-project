@@ -1,4 +1,4 @@
-# README: Earthquake Damage Assessment using Multi-modal Learning
+# Earthquake Damage Assessment using Multi-modal Learning
 
 ## Overview
 
