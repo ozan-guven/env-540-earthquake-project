@@ -23,6 +23,35 @@ def get_urls(links_path: str) -> List[str]:
         urls = f.readlines()
     return urls
 
+def create_data_folders(urls: str) -> None:
+    """Create pre and post earthquake folders for data.
+
+    Args:
+        urls (list): List of urls.
+    """
+    print('▶️ Creating data folders...')
+
+    if not os.path.exists(MAXAR_PATH):
+        os.makedirs(MAXAR_PATH)
+    if not os.path.exists(MAXAR_PATH + 'pre/'):
+        os.makedirs(MAXAR_PATH + 'pre/')
+    if not os.path.exists(MAXAR_PATH + 'post/'):
+        os.makedirs(MAXAR_PATH + 'post/')
+
+    for url in urls:
+        url_string = url.split('/')[-3:]
+        date = url_string[1]
+        file_path = MAXAR_PATH
+        if date < EARTHQUAKE_DATE:
+            file_path += 'pre/'
+        elif date >= EARTHQUAKE_DATE:
+            file_path += 'post/'
+
+        file_path += url_string[0] + '/'
+
+        if not os.path.exists(file_path):
+            os.makedirs(file_path)
+
 def download_file(url, maxar_path, earthquake_date):
     """Download a file from a url and save to the specified path.
 
@@ -41,10 +70,6 @@ def download_file(url, maxar_path, earthquake_date):
 
     file_path += url_string[0] + '/'
     file_name = '_'.join(url_string[-2:]).strip()
-
-    if not os.path.exists(file_path):
-        os.makedirs(file_path)
-
     file_path_with_name = os.path.join(file_path, file_name)
 
     if not os.path.exists(file_path_with_name):
@@ -58,13 +83,15 @@ def download_files(urls, maxar_path, earthquake_date):
         maxar_path (str): Path to save files.
         earthquake_date (str or datetime): Date to compare for pre/post folder sorting.
     """
+    print ('▶️ Downloading files...')
+
     # Use ThreadPoolExecutor to download files in parallel
     with ThreadPoolExecutor() as executor:
         # Create a list to hold the futures
         future_to_url = {executor.submit(download_file, url, maxar_path, earthquake_date): url for url in urls}
         
         # Iterate over the futures as they complete
-        for future in tqdm(as_completed(future_to_url), total=len(urls), desc="Downloading", unit="file"):
+        for future in tqdm(as_completed(future_to_url), total=len(urls), desc="🔄 Downloading files.", unit="file"):
             url = future_to_url[future]
             try:
                 # Result is None, since the download_file function does not return anything
@@ -74,4 +101,5 @@ def download_files(urls, maxar_path, earthquake_date):
 
 if __name__ == '__main__':
     urls = get_urls(LINKS_PATH)
+    create_data_folders(urls)
     download_files(urls, MAXAR_PATH, EARTHQUAKE_DATE)
