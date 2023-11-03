@@ -110,7 +110,7 @@ class Trainer():
         train_loader: DataLoader,
         optimizer: Optimizer,
         statistics: dict
-        ):
+        ) -> Tuple[float, float]:
         """Train the model for one epoch.
 
         Args:
@@ -207,35 +207,41 @@ class Trainer():
             
         return total_loss, f1
     
-    def test(self, test_loader, threshold, best_model_path='best_model.pth'):
+    def test(
+        self,
+        test_loader: DataLoader,
+        threshold: float = 0.5,
+        best_model_path: str = 'best_model.pth'
+        ) -> Tuple[float, float, float, float, np.ndarray]:
+        """Test the model.
+
+        Args:
+            test_loader (DataLoader): test data loader
+            threshold (float, optional): threshold to use for the prediction. Defaults to 0.5.
+            best_model_path (str, optional): path to the best model. Defaults to 'best_model.pth'.
+
+        Returns:
+            Tuple[float, float, float, float, np.ndarray]: accuracy, recall, precision, F1 score and confusion matrix
+        """
         if best_model_path is not None:
             self.model.load_state_dict(torch.load(best_model_path))
         
         self.model.eval()
         
-        tp = 0
-        tn = 0
-        fp = 0
-        fn = 0
-        
+        y_trues = []
+        y_preds = []
         with torch.no_grad():
             for data in test_loader:
                 # Move the data to the device
-                x = data['node_feat'].to(self.device)
-                adj = data['adj'].to(self.device)
-                edge_attr = data['edge_attr'].to(self.device)
-                y = data['y'].to(self.device)
+                x, y_true = data
 
                 # Forward pass
-                outputs = self.model(x, adj, edge_attr)
-                pred = int(torch.sigmoid(outputs) > threshold)
-
-                tp += int(pred == 1 and y == 1)
-                tn += int(pred == 0 and y == 0)
-                fp += int(pred == 1 and y == 0)
-                fn += int(pred == 0 and y == 1)
+                outputs = self.model(x)
+                y_pred = int(torch.sigmoid(outputs) > threshold)
+                y_trues.append(y_true)
+                y_preds.append(y_pred)
         
-        return self._copmute_statistics(tp, tn, fp, fn), (tp, tn, fp, fn)
+        return self._compute_statistics(y_trues, y_preds)
     
     @staticmethod
     def _compute_statistics(y_true: list, y_pred: list) -> Tuple[float, float, float, float, np.ndarray]:
