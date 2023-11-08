@@ -44,7 +44,7 @@ class SatelliteImageDataset(Dataset):
         self.transform = Compose([
             HorizontalFlip(p=0.5),
             VerticalFlip(p=0.5),
-            ShiftScaleRotate(p=0.5, shift_limit=0.2, scale_limit=0.2, rotate_limit=90),
+            ShiftScaleRotate(p=0.5, shift_limit=0.2, scale_limit=0.2, rotate_limit=90, border_mode=0),
             RandomBrightnessContrast(p=0.5, brightness_limit=0.2, contrast_limit=0.2),
             RandomGamma(p=0.5, gamma_limit=(80, 120)),
             OneOf([
