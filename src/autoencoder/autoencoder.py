@@ -5,7 +5,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ConvAutoencoder(nn.Module):
-    def __init__(self, encoder_channels: List[int], decoder_channels: List[int]):
+    # H_out = (H_in - 1) * stride - 2 * padding + kernel_size + output_padding
+    def __init__(
+        self, 
+        encoder_channels: List[int], 
+        decoder_channels: List[int],
+        kernel_size: int = 3,
+        stride: int = 2,
+        padding: int = 1,
+        output_padding: int = 1
+        ):
         """
         Initialize the convolutional autoencoder.
         
@@ -22,7 +31,7 @@ class ConvAutoencoder(nn.Module):
         for i in range(len(encoder_channels) - 1):
             self.encoder.add_module(
                 f"enc_conv{i}",
-                nn.Conv2d(encoder_channels[i], encoder_channels[i+1], kernel_size=3, stride=2, padding=1)
+                nn.Conv2d(encoder_channels[i], encoder_channels[i+1], kernel_size=kernel_size, stride=stride, padding=padding)
             )
             self.encoder.add_module(f"enc_relu{i}", nn.ReLU(True))
 
@@ -35,18 +44,16 @@ class ConvAutoencoder(nn.Module):
                 nn.ConvTranspose2d(
                     decoder_channels[i],
                     decoder_channels[i+1],
-                    kernel_size=3,
-                    stride=2,  # This might need to be adjusted for your specific architecture
-                    padding=1,
-                    output_padding=1  # This might need to be adjusted as well
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    padding=padding,
+                    output_padding=output_padding
                 )
             )
             if i < len(decoder_channels) - 2:  # Add ReLU and BatchNorm only for intermediate layers
                 self.decoder.add_module(f"dec_relu{i}", nn.ReLU(True))
 
     def forward(self, x):
-        print(self.encoder)
-        print(self.decoder)
         x = self.encoder(x)
         x = self.decoder(x)
         return x

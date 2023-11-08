@@ -8,7 +8,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 class Trainer():
     """
@@ -81,14 +81,14 @@ class Trainer():
         
         # Iterate over epochs
         best_loss = np.inf
-        with tqdm(range(num_epochs), desc='Epochs') as pbar_epochs:
-            for epoch in pbar_epochs:
-                self._train_one_epoch_autoencoder(train_loader, optimizer, statistics)
-                loss = self._evaluate_autoencoder(val_loader, statistics)
+        with tqdm(range(num_epochs), desc='Epochs') as bar:
+            for epoch in bar:
+                self._train_one_epoch_autoencoder(train_loader, optimizer, statistics, bar)
+                loss = self._evaluate_autoencoder(val_loader, statistics, bar)
                         
-                # If f1 is better than the previous best, save the model
+                # If loss is better than the previous best, save the model
                 if loss < best_loss:
-                    print(f"🎉 Saving model with new best loss: {f1:.2%}")
+                    print(f"🎉 Saving model with new best loss: {loss:.2}")
                     statistics['best_index'] = epoch
                     torch.save(self.model.state_dict(), save_path)
                     best_loss = loss
@@ -161,6 +161,7 @@ class Trainer():
         train_loader: DataLoader,
         optimizer: Optimizer,
         statistics: dict,
+        bar = None
         ) -> Tuple[float, float]:
         """Train the model for one epoch.
 
@@ -189,12 +190,13 @@ class Trainer():
             loss = self.criterion(outputs, y_true) / self.accumulation_steps
             loss.backward()
 
-            print('LOSS', loss.item())
-            
             # Optimize every accumulation steps
             if ((batch_idx + 1) % self.accumulation_steps == 0) or (batch_idx + 1 == len(train_loader)):
                 optimizer.step()
                 optimizer.zero_grad() # Zero the parameter gradients
+
+            if bar is not None:
+                bar.set_postfix({'batch': f"{batch_idx + 1}/{len(train_loader)}", 'train_loss': f"{loss.item():.4f}"})
             
             total_loss += loss.item()
         total_loss /= len(train_loader)
@@ -202,7 +204,7 @@ class Trainer():
         # Record the training statistics
         statistics['train_loss'].append(total_loss)
 
-        if self.print_statistics:
+        if self.print_statistics and bar is None:
             print(f"➡️ Train loss: {total_loss:.4f}")
     
     def _train_one_epoch(
@@ -266,7 +268,7 @@ class Trainer():
         if self.print_statistics:
             print(f"➡️ Train loss: {total_loss:.4f}, Train accuracy: {acc:.2%}, Train F1: {f1:.2%}")
         
-    def _evaluate_autoencoder(self, loader, statistics):
+    def _evaluate_autoencoder(self, loader, statistics, bar=None):
         self.model.eval()
 
         total_loss = 0
@@ -289,7 +291,10 @@ class Trainer():
             statistics['val_loss'].append(total_loss)
             
             if self.print_statistics:
-                print(f"➡️ Validation loss: {total_loss:.4f}")
+                if bar is None:
+                    print(f"➡️ Validation loss: {total_loss:.4f}")
+                else:
+                    bar.set_postfix({'val_loss': f"{total_loss:.4f}"})
             
         return total_loss
 
