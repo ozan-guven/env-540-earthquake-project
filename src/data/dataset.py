@@ -1,24 +1,42 @@
+"""
+    This file contains the dataset class for the satellite image dataset.
+"""
+
 import os
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
-from collections import OrderedDict, deque
+from typing import List, Tuple
 
 from albumentations import (
     Compose, OneOf,
     HorizontalFlip, VerticalFlip, ShiftScaleRotate, 
     RandomBrightnessContrast, RandomGamma,
     GaussNoise, Blur, MotionBlur, MedianBlur,
-    MultiplicativeNoise,
     ToFloat
     )
 from albumentations.pytorch import ToTensorV2
 
 import torch
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
-def get_split_image_files(directory, train_split=0.9, test_split=0.05, val_split=0.05):
+def get_split_image_files(
+        directory: str, 
+        train_split: float = 0.9, 
+        test_split: float = 0.05
+    ) -> Tuple[List[str], List[str], List[str]]:
+    """Get split image files.
+
+    Args:
+        directory (str): Directory containing image files.
+        train_split (float, optional): Train split. Defaults to 0.9.
+        test_split (float, optional): Test split. Defaults to 0.05.
+
+    Returns:
+        train_image_files (List[str]): List of train image file paths.
+        test_image_files (List[str]): List of test image file paths.
+        val_image_files (List[str]): List of validation image file paths.
+    """
     # Get image files
     image_files = [os.path.join(directory, file) for file in os.listdir(directory)]
 
@@ -38,7 +56,12 @@ def get_split_image_files(directory, train_split=0.9, test_split=0.05, val_split
     return train_image_files, test_image_files, val_image_files
 
 class SatelliteImageDataset(Dataset):
-    def __init__(self, image_files):
+    def __init__(self, image_files: List[str]):
+        """Initialize the satellite image dataset.
+
+        Args:
+            image_files (List[str]): List of image file paths.
+        """
         self.image_files = image_files
 
         self.transform = Compose([
@@ -57,14 +80,25 @@ class SatelliteImageDataset(Dataset):
             ToTensorV2(),
         ])
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Get length of dataset.
+
+        Returns:
+            len (int): Length of dataset.
+        """
         return len(self.image_files)
     
-    def __getitem__(self, idx):
-        # Get image
-        image = np.array(Image.open(self.image_files[idx]))
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        """Get item from dataset.
 
-        # Apply transform
+        Args:
+            idx (int): Index of item.
+
+        Returns:
+            patch (torch.Tensor): Patch tensor.
+        """
+        # Get image and apply transform
+        image = np.array(Image.open(self.image_files[idx]))
         patch = self.transform(image=image)['image']
 
         return patch
