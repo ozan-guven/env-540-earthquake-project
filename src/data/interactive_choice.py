@@ -1,9 +1,10 @@
 import os
 import shutil
 import tkinter as tk
-from tkinter import messagebox, Label
-from PIL import Image, ImageTk
+from tkinter import Label, messagebox
 from typing import List
+
+from PIL import Image, ImageTk
 
 DATA_PATH = '../../data/'
 MAXAR_FILTERED_PATCHES_PATH = DATA_PATH + 'maxar_filtered_patches/'
@@ -17,6 +18,8 @@ MAXAR_DAMAGED_PRE_PATCHES_PATH = MAXAR_DAMAGED_PATCHES_PATH + 'pre/'
 MAXAR_INTACT_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + 'intact/'
 MAXAR_INTACT_POST_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'post/'
 MAXAR_INTACT_PRE_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'pre/'
+
+IMAGE_SIZE = 900
 
 
 def _create_data_folders() -> None:
@@ -95,7 +98,7 @@ class ImageReviewerApp:
         # Show images
         def display_image(image_file, panel):
             displayed_image = Image.open(image_file)
-            displayed_image = displayed_image.resize((1024, 1024), Image.ANTIALIAS)
+            displayed_image = displayed_image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.LANCZOS)
             displayed_image = ImageTk.PhotoImage(displayed_image)
             panel.config(image=displayed_image)
             panel.image = displayed_image
