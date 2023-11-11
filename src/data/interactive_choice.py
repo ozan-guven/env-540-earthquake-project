@@ -151,6 +151,7 @@ def _get_patch_files() -> List[str]:
     all_pre_patch_files = [f"{MAXAR_ALL_PRE_PATCHES_PATH}{file}" for file in os.listdir(MAXAR_ALL_PRE_PATCHES_PATH)]
     all_post_patch_files = [f"{MAXAR_ALL_POST_PATCHES_PATH}{file}" for file in os.listdir(MAXAR_ALL_POST_PATCHES_PATH)]
 
+    # Fill dictionary with pre data
     for all_pre_patch_file in all_pre_patch_files:
         key = _get_short_patch_file_name(all_pre_patch_file)
         if key not in dict:
@@ -160,6 +161,7 @@ def _get_patch_files() -> List[str]:
 
         dict[key]['pre'].append(all_pre_patch_file)
 
+    # Fill dictionary with post data
     for all_post_patch_file in all_post_patch_files:
         key = _get_short_patch_file_name(all_post_patch_file)
         if key not in dict:
@@ -168,6 +170,11 @@ def _get_patch_files() -> List[str]:
             dict[key]['post'] = []
 
         dict[key]['post'].append(all_post_patch_file)
+
+    # Remove entries with no pre or no post data
+    for key in list(dict):
+        if len(dict[key]['pre']) < 1 or len(dict[key]['post']) < 1:
+            del dict[key]
 
     return dict
 
