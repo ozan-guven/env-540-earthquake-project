@@ -124,6 +124,8 @@ class ImageReviewerApp:
         # Schedule next update
         self.root.after(100, self.update_image)
 
+        print(f"⚠️ Damaged: {self.current_key}")
+
     def discard_data(self):
         # Move image to intact folder
         shutil.move(self.current_pre_image_file, MAXAR_INTACT_PRE_PATCHES_PATH)
@@ -138,6 +140,8 @@ class ImageReviewerApp:
 
         # Schedule next update
         self.root.after(100, self.update_image)
+
+        print(f"🛡️ Intact: {self.current_key}")
 
 def _get_short_patch_file_name(file: str) -> str:
     short_file = file.split('/')[-1]
