@@ -1,8 +1,6 @@
 from typing import List
 
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 class ConvAutoencoder(nn.Module):
     # H_out = (H_in - 1) * stride - 2 * padding + kernel_size + output_padding

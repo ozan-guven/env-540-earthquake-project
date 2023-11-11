@@ -52,9 +52,9 @@ def get_criterion():
 def get_optimizer(autoencoder, learning_rate):
     return torch.optim.Adam(autoencoder.parameters(), lr=learning_rate)
 
-def get_trainer():
+def get_trainer(model, criterion):
     return Trainer(
-        model=autoencoder, 
+        model=model, 
         device=DEVICE,
         criterion=criterion,
         accumulation_steps=ACCUMULATION_STEPS,
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     autoencoder = get_model()
     criterion = get_criterion()
     optimizer = get_optimizer(autoencoder, LEARNING_RATE)
-    trainer = get_trainer()
+    trainer = get_trainer(autoencoder, criterion)
     statistics = trainer.train_autoencoder(
         train_loader=train_dataloader, 
         val_loader=val_dataloader,
