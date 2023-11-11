@@ -20,7 +20,7 @@ MAXAR_INTACT_POST_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'post/'
 MAXAR_INTACT_PRE_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'pre/'
 
 IMAGE_SIZE = 900
-
+TK_RESOLUTION = '2148x1124'
 
 def _create_data_folders() -> None:
     """Create pre and post earthquake folders for data.
@@ -39,9 +39,16 @@ def _create_data_folders() -> None:
     os.makedirs(MAXAR_INTACT_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_INTACT_POST_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_INTACT_PRE_PATCHES_PATH, exist_ok=True)
-
 class ImageReviewerApp:
-    def __init__(self, root, patch_file_dict):
+    """Image reviewer app.
+    """
+    def __init__(self, root: tk.Tk, patch_file_dict: dict) -> None:
+        """Initialize the app.
+
+        Args:
+            root (tk.Tk): Tkinter root.
+            patch_file_dict (dict): Dictionary of patch files.
+        """
         self.root = root
         self.root.title("🌍 Image Reviewer")
         self.patch_file_dict = patch_file_dict
@@ -72,7 +79,9 @@ class ImageReviewerApp:
 
         self.update_image()
 
-    def update_image(self):
+    def update_image(self) -> None:
+        """Update the image.
+        """
         # Check if there are no more images to review
         if not self.patch_file_dict:
             messagebox.showinfo("End", "No more images to review.")
@@ -112,7 +121,9 @@ class ImageReviewerApp:
         # Remove the processed key
         # del self.patch_file_dict[first_key]
 
-    def keep_data(self):
+    def keep_data(self) -> None:
+        """Keep the data, i.e. move it to the damaged folder.
+        """
         # Move image to damaged folder
         shutil.move(self.current_pre_image_file, MAXAR_DAMAGED_PRE_PATCHES_PATH)
         shutil.move(self.current_post_image_file, MAXAR_DAMAGED_POST_PATCHES_PATH)
@@ -129,7 +140,9 @@ class ImageReviewerApp:
 
         print(f"⚠️ Damaged: {self.current_key}")
 
-    def discard_data(self):
+    def discard_data(self) -> None:
+        """Discard the data, i.e. move it to the intact folder.
+        """
         # Move image to intact folder
         shutil.move(self.current_pre_image_file, MAXAR_INTACT_PRE_PATCHES_PATH)
         shutil.move(self.current_post_image_file, MAXAR_INTACT_POST_PATCHES_PATH)
@@ -147,12 +160,25 @@ class ImageReviewerApp:
         print(f"🛡️ Intact: {self.current_key}")
 
 def _get_short_patch_file_name(file: str) -> str:
+    """Get short patch file name.
+
+    Args:
+        file (str): File path.
+
+    Returns:
+        str: Short patch file name.
+    """
     short_file = file.split('/')[-1]
     short_file = short_file.split('_')[0] + '_' + short_file.split('_')[3]
     short_file = short_file.split('.')[0]
     return short_file
 
 def _get_patch_files() -> List[str]:
+    """Get patch files.
+
+    Returns:
+        List[str]: List of patch files.
+    """
     dict = {}
     MAXAR_ALL_POST_PATCHES_PATH
     all_pre_patch_files = [f"{MAXAR_ALL_PRE_PATCHES_PATH}{file}" for file in os.listdir(MAXAR_ALL_PRE_PATCHES_PATH)]
@@ -185,10 +211,9 @@ def _get_patch_files() -> List[str]:
 
     return dict
 
-
 if __name__ == "__main__":
     root = tk.Tk()
-    root.geometry("2148x1124+300+150")
+    root.geometry(f"{TK_RESOLUTION}+300+150")
     root.resizable(width=True, height=True)
 
     _create_data_folders()

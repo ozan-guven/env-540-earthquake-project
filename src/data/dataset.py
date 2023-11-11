@@ -20,17 +20,20 @@ from albumentations.pytorch import ToTensorV2
 import torch
 from torch.utils.data import Dataset
 
+TRAIN_SPLIT = 0.9
+TEST_SPLIT = 0.05
+
 def get_split_image_files(
         directory: str, 
-        train_split: float = 0.9, 
-        test_split: float = 0.05
+        train_split: float = TRAIN_SPLIT, 
+        test_split: float = TEST_SPLIT
     ) -> Tuple[List[str], List[str], List[str]]:
     """Get split image files.
 
     Args:
         directory (str): Directory containing image files.
-        train_split (float, optional): Train split. Defaults to 0.9.
-        test_split (float, optional): Test split. Defaults to 0.05.
+        train_split (float, optional): Train split. Defaults to TRAIN_SPLIT.
+        test_split (float, optional): Test split. Defaults to TEST_SPLIT.
 
     Returns:
         train_image_files (List[str]): List of train image file paths.
