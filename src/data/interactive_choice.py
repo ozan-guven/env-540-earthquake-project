@@ -105,7 +105,13 @@ class ImageReviewerApp:
         self.current_post_image_file = self.patch_file_dict[self.current_key]['post'][0]
 
         # Show images
-        def display_image(image_file, panel):
+        def display_image(image_file: str, panel: Label) -> None:
+            """Display image.
+
+            Args:
+                image_file (str): Image file.
+                panel (Label): Panel.
+            """
             displayed_image = Image.open(image_file)
             displayed_image = displayed_image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.LANCZOS)
             displayed_image = ImageTk.PhotoImage(displayed_image)
