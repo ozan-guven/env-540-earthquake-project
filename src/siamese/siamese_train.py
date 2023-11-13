@@ -12,24 +12,26 @@ from torch.utils.data import DataLoader
 from src.utils.trainer import Trainer
 from src.siamese.siamese_dataset import SiameseDataset
 from src.siamese.siamese_network import SiameseNetwork
+from src.siamese.contrastive_loss import ContrastiveLoss
 
 DATA_PATH = '../../data/'
-MAXAR_REVIEWED_PATCHES_PATH = DATA_PATH + 'maxar_reviewed_patches/'
-MAXAR_INTACT_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + '/intact/'
-MAXAR_DAMAGED_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + '/damaged/'
+MAXAR_REVIEWED_PATCHES_PATH = 'maxar_reviewed_patches/'
+MAXAR_INTACT_PATCHES_PATH = 'intact/'
+MAXAR_DAMAGED_PATCHES_PATH = 'damaged/'
 MAXAR_PRE_FOLDER = 'pre/'
 MAXAR_POST_FOLDER = 'post/'
 
-TRAIN_SPLIT = 0.9
-TEST_SPLIT = 0.05
+TRAIN_SPLIT = 0.7
+TEST_SPLIT = 0.15
 
 IMAGE_SIZE = 1024
 
-EPOCHS = 1
-LEARNING_RATE = 1e-3
-BATCH_SIZE = 1
-ACCUMULATION_STEPS = 16
-NUM_WORKERS = 4
+EPOCHS = 50
+LEARNING_RATE = 1e-4
+BATCH_SIZE = 4
+ACCUMULATION_STEPS = 4
+EVALUATION_STEPS = 100
+NUM_WORKERS = 8
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -48,14 +50,17 @@ def _get_short_patch_file_name(file: str) -> str:
     return short_file
 
 def _get_split_paired_satellite_image_files(
+        data_path: str = DATA_PATH,
         train_split: float = TRAIN_SPLIT, 
         test_split: float = TEST_SPLIT
     ) -> Tuple[List[Tuple[str, str, int]], List[Tuple[str, str, int]], List[Tuple[str, str, int]]]:
     # Get pre and post file names
-    intact_pre_files = [f"{MAXAR_INTACT_PATCHES_PATH}{MAXAR_PRE_FOLDER}{file}" for file in os.listdir(MAXAR_INTACT_PATCHES_PATH + MAXAR_PRE_FOLDER)]
-    intact_post_files = [f"{MAXAR_INTACT_PATCHES_PATH}{MAXAR_POST_FOLDER}{file}" for file in os.listdir(MAXAR_INTACT_PATCHES_PATH + MAXAR_POST_FOLDER)]
-    damaged_pre_files = [f"{MAXAR_DAMAGED_PATCHES_PATH}{MAXAR_PRE_FOLDER}{file}" for file in os.listdir(MAXAR_DAMAGED_PATCHES_PATH + MAXAR_PRE_FOLDER)]
-    damaged_post_files = [f"{MAXAR_DAMAGED_PATCHES_PATH}{MAXAR_POST_FOLDER}{file}" for file in os.listdir(MAXAR_DAMAGED_PATCHES_PATH + MAXAR_POST_FOLDER)]
+    maxar_intact_patches_path = f"{data_path}{MAXAR_REVIEWED_PATCHES_PATH}{MAXAR_INTACT_PATCHES_PATH}"
+    maxar_damaged_patches_path = data_path + MAXAR_REVIEWED_PATCHES_PATH + MAXAR_DAMAGED_PATCHES_PATH
+    intact_pre_files = [f"{maxar_intact_patches_path}{MAXAR_PRE_FOLDER}{file}" for file in os.listdir(maxar_intact_patches_path + MAXAR_PRE_FOLDER)]
+    intact_post_files = [f"{maxar_intact_patches_path}{MAXAR_POST_FOLDER}{file}" for file in os.listdir(maxar_intact_patches_path + MAXAR_POST_FOLDER)]
+    damaged_pre_files = [f"{maxar_damaged_patches_path}{MAXAR_PRE_FOLDER}{file}" for file in os.listdir(maxar_damaged_patches_path + MAXAR_PRE_FOLDER)]
+    damaged_post_files = [f"{maxar_damaged_patches_path}{MAXAR_POST_FOLDER}{file}" for file in os.listdir(maxar_damaged_patches_path + MAXAR_POST_FOLDER)]
 
     # Get pre and post short file names
     short_intact_pre_files = [_get_short_patch_file_name(file) for file in intact_pre_files]
@@ -124,16 +129,16 @@ def _get_split_paired_satellite_image_files(
 
     return train_data, test_data, val_data
 
-def _get_dataloaders():
-    train_data, test_data, val_data = _get_split_paired_satellite_image_files()
+def get_dataloaders(data_path: str = DATA_PATH, batch_size: int = BATCH_SIZE):
+    train_data, test_data, val_data = _get_split_paired_satellite_image_files(data_path=data_path)
 
-    train_dataset = SiameseDataset(train_data, image_size=IMAGE_SIZE)
-    test_dataset = SiameseDataset(test_data, image_size=IMAGE_SIZE)
-    val_dataset = SiameseDataset(val_data, image_size=IMAGE_SIZE)
+    train_dataset = SiameseDataset(train_data, image_size=IMAGE_SIZE, augment_data=True)
+    test_dataset = SiameseDataset(test_data, image_size=IMAGE_SIZE, augment_data=False)
+    val_dataset = SiameseDataset(val_data, image_size=IMAGE_SIZE, augment_data=False)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-    test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
-    val_dataloader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
 
     print(f'✅ Train dataloader length: {len(train_dataloader)}')
     print(f'✅ Test dataloader length: {len(test_dataloader)}')
@@ -143,31 +148,31 @@ def _get_dataloaders():
 
 def get_model():
     return SiameseNetwork(
-        image_size = IMAGE_SIZE,
-        input_channels=3,
-        conv_channels=[16, 32],
-        fc_layers=[512, 128],
-        activation = nn.ReLU(inplace=True),
-        embedding_size = 50
+        input_channels = 3,
+        conv_channels = [16, 32, 64, 128, 256, 512],
+        embedding_size = 128,
+        dropout_rate = 0.2
     ).to(DEVICE)
 
 def get_criterion():
-    return torch.nn.BCELoss()
+    return ContrastiveLoss(margin=2.0)
 
 def get_optimizer(siamese, learning_rate):
     return torch.optim.Adam(siamese.parameters(), lr=learning_rate)
 
 def get_trainer(model, criterion):
     return Trainer(
-        model=model, 
-        device=DEVICE,
-        criterion=criterion,
-        accumulation_steps=ACCUMULATION_STEPS,
-        print_statistics=True
+        model = model, 
+        device = DEVICE,
+        criterion = criterion,
+        accumulation_steps = ACCUMULATION_STEPS,
+        evaluation_steps = EVALUATION_STEPS,
+        print_statistics = False,
+        use_scaler = False
     )
 
 if __name__ == '__main__':
-    train_dataloader, _, val_dataloader = _get_dataloaders()
+    train_dataloader, _, val_dataloader = get_dataloaders()
     siamese = get_model()
     criterion = get_criterion()
     optimizer = get_optimizer(siamese, LEARNING_RATE)

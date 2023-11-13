@@ -1,64 +1,94 @@
+from typing import List
+
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-class SiameseNetwork(nn.Module):
+class SiameseEncoder(nn.Module):
     def __init__(
             self, 
-            image_size = 1024,
-            input_channels = 3, 
-            conv_channels = [8, 16, 32, 64, 128], 
-            fc_layers = [512, 128], 
+            input_channels: int = 3, 
+            conv_channels: List[int] = [16, 32, 64, 128, 256, 512],
             activation = nn.ReLU(inplace=True),
-            embedding_size = 50
+            dropout_rate: float = 0.0
         ):
-        super(SiameseNetwork, self).__init__()
+        super().__init__()
 
         self.conv_layers = nn.ModuleList()
         self.bn_layers = nn.ModuleList()
-        self.fc_layers = nn.ModuleList()
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self.activation = activation
+        self.dropout = nn.Dropout(dropout_rate)
 
         # Convolutional Layers
         in_channels = input_channels
         for out_channels in conv_channels:
-            self.conv_layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=2, padding=2))
+            self.conv_layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2))
             self.bn_layers.append(nn.BatchNorm2d(out_channels))
             in_channels = out_channels
 
-        # Pooling Layer
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        # Convolutional Layers
+        for conv, bn in zip(self.conv_layers, self.bn_layers):
+            x = conv(x)
+            x = bn(x)
+            self.activation(x)
+            x = self.dropout(x)
+            x = self.pool(x)
 
-        # Calculate the flat size after convolutions and pooling
-        flat_size = self._get_conv_output(torch.zeros(1, input_channels, image_size, image_size))
+        return x
 
-        # Fully Connected Layers
-        in_features = flat_size
-        for out_features in fc_layers:
-            self.fc_layers.append(nn.Linear(in_features, out_features))
-            in_features = out_features
+class SiameseBranch(nn.Module):
+    def __init__(
+            self, 
+            input_channels: int = 3, 
+            conv_channels: List[int] = [16, 32, 64, 128, 256, 512], 
+            embedding_size: int = 128,
+            activation: nn.Module = nn.ReLU(inplace=True),
+            dropout_rate: float = 0.0
+        ):
+        super().__init__()
+
+        # Siamese Encoder
+        self.encoder = SiameseEncoder(input_channels, conv_channels, activation, dropout_rate)
+        self.activation = activation
+        self.dropout = nn.Dropout(dropout_rate)
 
         # Embedding Layer
-        self.emb_layer = nn.Linear(in_features, embedding_size)
+        self.embedding = nn.Linear(conv_channels[-1], embedding_size)
 
-    def _get_conv_output(self, input_shape):
-        output = input_shape
-        for conv, bn in zip(self.conv_layers, self.bn_layers):
-            output = self.pool(bn(conv(output)))
-        return int(np.prod(output.size()[1:]))
-    
     def forward(self, x):
-        # Forward pass for one leg of the Siamese network
-        for conv, bn in zip(self.conv_layers, self.bn_layers):
-            x = self.pool(self.activation(bn(conv(x))))
-        
-        # Flatten the output
-        x = x.view(x.size(0), -1)
+        # Encoding
+        x = self.encoder(x)
 
-        # Fully connected layers
-        for fc in self.fc_layers:
-            x = self.activation(fc(x))
+        # Global Average Pooling abd latten the output
+        x = F.adaptive_avg_pool2d(x, (1, 1))
+        x = x.view(x.size(0), -1) 
 
-        x = self.emb_layer(x)
+        # Embedding
+        x = self.embedding(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+
         return x
+    
+class SiameseNetwork(nn.Module):
+    def __init__(
+            self,
+            input_channels: int = 3, 
+            conv_channels: List[int] = [16, 32, 64, 128, 256, 512], 
+            embedding_size: int = 128,
+            activation: nn.Module = nn.ReLU(inplace=True),
+            dropout_rate: float = 0.0
+        ):
+        super().__init__()
+
+        # Siamese Branch
+        self.branch = SiameseBranch(input_channels, conv_channels, embedding_size, activation, dropout_rate)
+
+    def forward(self, pre, post):
+        # Forward pass on each branch
+        pre_embeddings = self.branch(pre)
+        post_embeddings = self.branch(post)
+
+        return pre_embeddings, post_embeddings

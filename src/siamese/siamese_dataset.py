@@ -2,7 +2,13 @@ import numpy as np
 from PIL import Image
 from typing import Tuple
 
-from albumentations import (Compose)
+from albumentations import (
+    Compose, OneOf,
+    HorizontalFlip, VerticalFlip, ShiftScaleRotate, 
+    RandomBrightnessContrast, RandomGamma,
+    GaussNoise, Blur, MotionBlur, MedianBlur,
+    ToFloat
+    )
 from albumentations.pytorch import ToTensorV2
 
 import torch
@@ -10,7 +16,12 @@ from torch.utils.data import Dataset
 import torch.nn as nn
 
 class SiameseDataset(Dataset):
-    def __init__(self, data: list[Tuple[str, str, int]], image_size: int = 1024):
+    def __init__(
+            self, 
+            data: list[Tuple[str, str, int]], 
+            image_size: int = 1024,
+            augment_data: bool = False
+            ):
         """Initialize the paired satellite image dataset.
 
         Args:
@@ -18,9 +29,29 @@ class SiameseDataset(Dataset):
         """
         self.data = data
         self.image_size = image_size
-        self.transform = Compose([
-            ToTensorV2(),
-        ])
+        if augment_data:
+            self.transform = Compose([
+                HorizontalFlip(p=0.5),
+                VerticalFlip(p=0.5),
+                ShiftScaleRotate(p=0.5, shift_limit=0.2, scale_limit=0.1, rotate_limit=20, border_mode=0),
+                RandomBrightnessContrast(p=0.5),
+                RandomGamma(p=0.5),
+                OneOf([
+                    GaussNoise(p=1.0),
+                    Blur(p=1.0),
+                    MotionBlur(p=1.0),
+                    MedianBlur(p=1.0),
+                ], p=0.5),
+                ToFloat(max_value=255),
+                ToTensorV2(),
+            ],
+            additional_targets={'image2': 'image'})
+        else:
+            self.transform = Compose([
+                ToFloat(max_value=255),
+                ToTensorV2(),
+            ],
+            additional_targets={'image2': 'image'})
 
     def __len__(self) -> int:
         """Get length of dataset.
@@ -28,7 +59,7 @@ class SiameseDataset(Dataset):
         Returns:
             len (int): Length of dataset.
         """
-        return len(self.data) * (len(self.data) - 1) // 2 # Number of combinations of pairs (n choose 2)
+        return len(self.data)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get item from dataset.
@@ -39,35 +70,24 @@ class SiameseDataset(Dataset):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Tuple of pre and post patch tensors.
         """
-        # Calculate indices for pair combinations
-        n = len(self.data)
-        row = idx // (n - 1)
-        col = idx % (n - 1)
-
-        if col >= row:
-            col += 1
-
-        (pre_img_path_1, post_img_path_1, label_1), (pre_img_path_2, post_img_path_2, label_2) = self.data[row], self.data[col]
+        # Get pre and post file paths
+        pre_path = self.data[idx][0]
+        post_path = self.data[idx][1]
+        label = self.data[idx][2]
 
         # Load and transform images
-        pre_img_1 = np.array(Image.open(pre_img_path_1))
-        post_img_1 = np.array(Image.open(post_img_path_1))
-        pre_img_2 = np.array(Image.open(pre_img_path_2))
-        post_img_2 = np.array(Image.open(post_img_path_2))
+        pre = np.array(Image.open(pre_path))
+        post = np.array(Image.open(post_path))
 
-        pre_img_1 = self.transform(image=pre_img_1)['image']
-        post_img_1 = self.transform(image=post_img_1)['image']
-        pre_img_2 = self.transform(image=pre_img_2)['image']
-        post_img_2 = self.transform(image=post_img_2)['image']
+        data = self.transform(image=pre, image2=post)
+        pre = data['image']
+        post = data['image2']
 
         # Resizing
-        pre_img_1 = nn.functional.interpolate(pre_img_1.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
-        post_img_1 = nn.functional.interpolate(post_img_1.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
-        pre_img_2 = nn.functional.interpolate(pre_img_2.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
-        post_img_2 = nn.functional.interpolate(post_img_2.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
+        pre = nn.functional.interpolate(pre.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
+        post = nn.functional.interpolate(post.unsqueeze(0), size=(self.image_size, self.image_size), mode='bilinear', align_corners=False).squeeze(0)
 
         # Return both pairs and their labels
-        # Label is 1 if both pairs are of the same class (both intact or both damaged)
-        label = int(label_1 == label_2)
         label = torch.tensor(label)
-        return pre_img_1.float(), post_img_1.float(), pre_img_2.float(), post_img_2.float(), label.float()
+
+        return pre, post, label.float()
