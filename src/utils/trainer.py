@@ -21,7 +21,8 @@ class Trainer():
         accumulation_steps: int, 
         evaluation_steps: int,
         print_statistics: bool = False,
-        use_scaler: bool = False
+        use_scaler: bool = False,
+        tensorboard_writer = None,
         ):
         """Initialize the trainer.
 
@@ -46,6 +47,9 @@ class Trainer():
         self.evaluation_steps = evaluation_steps
         self.print_statistics = print_statistics
         self.use_scaler = use_scaler
+        self.tensorboard_writer = None
+        if tensorboard_writer is not None:
+            self.tensorboard_writer = tensorboard_writer
 
         self.best_eval_val_loss = np.inf
         self.eval_train_loss = 0
@@ -93,7 +97,7 @@ class Trainer():
         scaler = GradScaler(enabled=self.use_scaler)
         
         with tqdm(range(num_epochs), desc='Epochs', unit='epoch') as bar:
-            for _ in bar:
+            for epoch in bar:
                 self._train_one_epoch_siamese(
                     train_loader, 
                     val_loader, 
@@ -101,9 +105,11 @@ class Trainer():
                     statistics, 
                     scaler, 
                     save_path = save_path,
-                    bar = bar
+                    bar = bar,
+                    epoch=epoch
                 )
-                    
+        
+        self.tensorboard_writer.close()
         return statistics
 
     def _train_one_epoch_siamese(
@@ -114,7 +120,8 @@ class Trainer():
             statistics: dict,
             scaler: GradScaler,
             save_path = 'best_model.pth',
-            bar: tqdm = None
+            bar: tqdm = None,
+            epoch: int = 0
         ):
         self.model.train()
 
@@ -165,6 +172,12 @@ class Trainer():
                 statistics['train_loss'].append(train_loss)
                 total_train_loss = 0
                 n_train_loss = 0
+
+                # Log to TensorBoard
+                if self.tensorboard_writer is not None:
+                    iteration = batch_idx + 1 + len(train_loader) * epoch
+                    self.tensorboard_writer.add_scalar('Train Loss', self.eval_train_loss, iteration)
+                    self.tensorboard_writer.add_scalar('Validation Loss', self.eval_val_loss, iteration)
 
                 if bar is None and self.print_statistics:
                     print(f"➡️ Training loss: {train_loss:.4f}, Validation loss: {self.eval_val_loss:.4f}")

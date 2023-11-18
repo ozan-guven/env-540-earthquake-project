@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+from torch.utils.tensorboard import SummaryWriter  # Import SummaryWriter
 from src.utils.trainer import Trainer
 from src.siamese.siamese_dataset import SiameseDataset
 from src.siamese.siamese_network import SiameseNetwork
@@ -27,7 +28,7 @@ TEST_SPLIT = 0.15
 IMAGE_SIZE = 1024
 
 EPOCHS = 50
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-5
 BATCH_SIZE = 4
 ACCUMULATION_STEPS = 4
 EVALUATION_STEPS = 100
@@ -155,12 +156,12 @@ def get_model():
     ).to(DEVICE)
 
 def get_criterion():
-    return ContrastiveLoss(margin=2.0)
+    return ContrastiveLoss(margin=10.0)
 
 def get_optimizer(siamese, learning_rate):
     return torch.optim.Adam(siamese.parameters(), lr=learning_rate)
 
-def get_trainer(model, criterion):
+def get_trainer(model, criterion, tensorboard_writer=None):
     return Trainer(
         model = model, 
         device = DEVICE,
@@ -168,15 +169,17 @@ def get_trainer(model, criterion):
         accumulation_steps = ACCUMULATION_STEPS,
         evaluation_steps = EVALUATION_STEPS,
         print_statistics = False,
-        use_scaler = False
+        use_scaler = False,
+        tensorboard_writer=tensorboard_writer
     )
 
 if __name__ == '__main__':
+    tensorboard_writer = SummaryWriter(log_dir="./logs/")
     train_dataloader, _, val_dataloader = get_dataloaders()
     siamese = get_model()
     criterion = get_criterion()
     optimizer = get_optimizer(siamese, LEARNING_RATE)
-    trainer = get_trainer(siamese, criterion)
+    trainer = get_trainer(siamese, criterion, tensorboard_writer)
     statistics = trainer.train_siamese(
         train_loader=train_dataloader, 
         val_loader=val_dataloader,
