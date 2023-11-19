@@ -1,19 +1,16 @@
-import numpy as np
-from PIL import Image
 from typing import Tuple
 
-from albumentations import (
-    Compose, OneOf,
-    HorizontalFlip, VerticalFlip, ShiftScaleRotate, 
-    RandomBrightnessContrast, RandomGamma,
-    GaussNoise, Blur, MotionBlur, MedianBlur,
-    ToFloat
-    )
-from albumentations.pytorch import ToTensorV2
-
+import numpy as np
 import torch
-from torch.utils.data import Dataset
 import torch.nn as nn
+from albumentations import (Blur, Compose, GaussNoise, HorizontalFlip,
+                            MedianBlur, MotionBlur, OneOf,
+                            RandomBrightnessContrast, RandomGamma,
+                            ShiftScaleRotate, ToFloat, VerticalFlip)
+from albumentations.pytorch import ToTensorV2
+from PIL import Image
+from torch.utils.data import Dataset
+
 
 class SiameseDataset(Dataset):
     def __init__(

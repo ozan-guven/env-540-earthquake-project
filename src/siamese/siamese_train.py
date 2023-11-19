@@ -1,19 +1,20 @@
 import sys
+
 sys.path.append('../../')
 
 import os
-import numpy as np
-from typing import Tuple, List
+from typing import List, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
+import wandb
 from torch.utils.data import DataLoader
 
-from torch.utils.tensorboard import SummaryWriter  # Import SummaryWriter
-from src.utils.trainer import Trainer
+from src.siamese.contrastive_loss import ContrastiveLoss
 from src.siamese.siamese_dataset import SiameseDataset
 from src.siamese.siamese_network import SiameseNetwork
-from src.siamese.contrastive_loss import ContrastiveLoss
+from src.utils.trainer import Trainer
 
 DATA_PATH = '../../data/'
 MAXAR_REVIEWED_PATCHES_PATH = 'maxar_reviewed_patches/'
@@ -28,10 +29,15 @@ TEST_SPLIT = 0.15
 IMAGE_SIZE = 1024
 
 EPOCHS = 50
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-3 #1e-5
 BATCH_SIZE = 4
 ACCUMULATION_STEPS = 4
 EVALUATION_STEPS = 100
+DROPOUT_RATE = 0.0
+SIAMESE_CONV_CHANNELS = [16, 16, 32, 32, 64, 64, 64, 128, 128, 128]
+SIAMESE_EMBEDDING_SIZE = 128
+SIAMESE_MAX_POOL_INDICES = [1, 3, 6, 9]
+CONTRASTIVE_LOSS_MARGIN = 2.0
 NUM_WORKERS = 8
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -150,18 +156,19 @@ def get_dataloaders(data_path: str = DATA_PATH, batch_size: int = BATCH_SIZE):
 def get_model():
     return SiameseNetwork(
         input_channels = 3,
-        conv_channels = [16, 32, 64, 128, 256, 512],
-        embedding_size = 128,
-        dropout_rate = 0.2
+        conv_channels = SIAMESE_CONV_CHANNELS,
+        embedding_size = SIAMESE_EMBEDDING_SIZE,
+        max_pool_indices = SIAMESE_MAX_POOL_INDICES,
+        dropout_rate = DROPOUT_RATE
     ).to(DEVICE)
 
 def get_criterion():
-    return ContrastiveLoss(margin=10.0)
+    return ContrastiveLoss(margin=CONTRASTIVE_LOSS_MARGIN)
 
 def get_optimizer(siamese, learning_rate):
     return torch.optim.Adam(siamese.parameters(), lr=learning_rate)
 
-def get_trainer(model, criterion, tensorboard_writer=None):
+def get_trainer(model, criterion):
     return Trainer(
         model = model, 
         device = DEVICE,
@@ -169,21 +176,20 @@ def get_trainer(model, criterion, tensorboard_writer=None):
         accumulation_steps = ACCUMULATION_STEPS,
         evaluation_steps = EVALUATION_STEPS,
         print_statistics = False,
-        use_scaler = False,
-        tensorboard_writer=tensorboard_writer
+        use_scaler = True,
     )
 
 if __name__ == '__main__':
-    tensorboard_writer = SummaryWriter(log_dir="./logs/")
     train_dataloader, _, val_dataloader = get_dataloaders()
     siamese = get_model()
     criterion = get_criterion()
     optimizer = get_optimizer(siamese, LEARNING_RATE)
-    trainer = get_trainer(siamese, criterion, tensorboard_writer)
+    trainer = get_trainer(siamese, criterion)
     statistics = trainer.train_siamese(
         train_loader=train_dataloader, 
         val_loader=val_dataloader,
         optimizer=optimizer,
-        num_epochs=EPOCHS
+        num_epochs=EPOCHS,
+        learning_rate=LEARNING_RATE
     )
     

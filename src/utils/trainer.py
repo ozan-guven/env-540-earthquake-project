@@ -1,12 +1,12 @@
 import numpy as np
-
 import torch
+import wandb
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch.cuda.amp import GradScaler, autocast
-
 from tqdm import tqdm
+
 
 class Trainer():
     """
@@ -22,7 +22,6 @@ class Trainer():
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
-        tensorboard_writer = None,
         ):
         """Initialize the trainer.
 
@@ -47,9 +46,6 @@ class Trainer():
         self.evaluation_steps = evaluation_steps
         self.print_statistics = print_statistics
         self.use_scaler = use_scaler
-        self.tensorboard_writer = None
-        if tensorboard_writer is not None:
-            self.tensorboard_writer = tensorboard_writer
 
         self.best_eval_val_loss = np.inf
         self.eval_train_loss = 0
@@ -61,7 +57,8 @@ class Trainer():
             val_loader: DataLoader,
             optimizer: Optimizer,
             num_epochs: int,
-            save_path: str = 'best_model.pth',
+            learning_rate: int = 0,
+            save_path: str = 'best_model.pth'
         ) -> dict:
         """Train the Siamese network model.
 
@@ -80,6 +77,18 @@ class Trainer():
         """
         if num_epochs <= 0:
             raise ValueError("❌ num_epochs must be a positive integer")
+        
+        # Setup WandB and watch
+        wandb.init(
+            project="siamese-network", 
+            config={
+                "architecture": "Siamese",
+                "dataset": "Maxar 2023 Turkish Earthquake",
+                "epochs": num_epochs,
+                "learning_rate": learning_rate
+            }
+        )
+        wandb.watch(self.model, log_freq=4, log="all")
 
         print(f"🚀 Training siamese model for {num_epochs} epochs...")
 
@@ -97,7 +106,7 @@ class Trainer():
         scaler = GradScaler(enabled=self.use_scaler)
         
         with tqdm(range(num_epochs), desc='Epochs', unit='epoch') as bar:
-            for epoch in bar:
+            for _ in bar:
                 self._train_one_epoch_siamese(
                     train_loader, 
                     val_loader, 
@@ -105,11 +114,11 @@ class Trainer():
                     statistics, 
                     scaler, 
                     save_path = save_path,
-                    bar = bar,
-                    epoch=epoch
+                    bar = bar
                 )
+
+        wandb.finish()
         
-        self.tensorboard_writer.close()
         return statistics
 
     def _train_one_epoch_siamese(
@@ -121,7 +130,6 @@ class Trainer():
             scaler: GradScaler,
             save_path = 'best_model.pth',
             bar: tqdm = None,
-            epoch: int = 0
         ):
         self.model.train()
 
@@ -173,20 +181,18 @@ class Trainer():
                 total_train_loss = 0
                 n_train_loss = 0
 
-                # Log to TensorBoard
-                if self.tensorboard_writer is not None:
-                    iteration = batch_idx + 1 + len(train_loader) * epoch
-                    self.tensorboard_writer.add_scalar('Train Loss', self.eval_train_loss, iteration)
-                    self.tensorboard_writer.add_scalar('Validation Loss', self.eval_val_loss, iteration)
-
                 if bar is None and self.print_statistics:
-                    print(f"➡️ Training loss: {train_loss:.4f}, Validation loss: {self.eval_val_loss:.4f}")
+                    print(f"➡️ Training loss: {self.eval_train_loss:.4f}, Validation loss: {self.eval_val_loss:.4f}")
                 else:
                     bar.set_postfix({
                         'batch': f"{batch_idx + 1}/{len(train_loader)}", 
                         'train_loss': f"{self.eval_train_loss:.4f}", 
                         'val_loss': f"{self.eval_val_loss:.4f}"}
                     )
+                wandb.log({
+                    "train_loss": self.eval_train_loss,
+                    "val_loss": self.eval_val_loss
+                })
 
     def _evaluate_siamese(self, loader: DataLoader):
         self.model.eval()
