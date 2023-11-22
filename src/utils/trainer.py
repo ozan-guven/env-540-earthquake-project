@@ -213,5 +213,7 @@ class Trainer():
                     total_val_loss += val_loss.item()
 
         total_val_loss /= len(loader)
-            
+        
+        wandb.save('models/best_model.onnx')
+        
         return total_val_loss
