@@ -1,8 +1,4 @@
-data/maxar
-data/maxar_filtered_patches
-data/maxar_patches
-data/maxar_reviewed_patches
-data/models
+data/*
 
 wandb
 

@@ -1,3 +1,6 @@
+### OK
+# This file contains the Encoder class, which is used in the UNet model.
+
 from typing import List
 
 import torch
@@ -6,29 +9,58 @@ import torch.nn as nn
 
 class Encoder(nn.Module):
     def __init__(
-            self,
-            conv_channels: List[List[int]] = [[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128]],
-            activation = nn.ReLU(inplace=True),
-            dropout_rate: float = 0.0,
-            return_skipped_connections: bool = True
-        ):
+        self,
+        conv_channels: List[List[int]] = [
+            [3, 16, 16],
+            [16, 32, 32],
+            [32, 64, 64, 64],
+            [64, 128, 128, 128],
+        ],
+        activation=nn.ReLU(inplace=True),
+        dropout_rate: float = 0.0,
+        return_skipped_connections: bool = True,
+    ) -> None:
+        """
+        Initialize the encoder.
+
+        Args:
+            conv_channels (List[List[int]]): Each list of integers represents the number of channels for each convolutional layer in the encoder
+            activation (nn.Module): The activation function
+            dropout_rate (float): The dropout rate
+            return_skipped_connections (bool): Whether to return the skipped connections from the encoder
+        """
         super().__init__()
 
         self.return_skipped_connections = return_skipped_connections
-        
+
         self.encoder = nn.Sequential()
 
         # Convolutional Layers
         for i, channels in enumerate(conv_channels):
             for index, (in_conv, out_conv) in enumerate(zip(channels, channels[1:])):
-                self.encoder.add_module(f'conv{i}_{index}', nn.Conv2d(in_conv, out_conv, kernel_size=3, stride=1, padding=1))
-                self.encoder.add_module(f'bn{i}_{index}', nn.BatchNorm2d(out_conv))
-                self.encoder.add_module(f'dropout{i}_{index}', nn.Dropout(dropout_rate))
-                self.encoder.add_module(f'activation{i}_{index}', activation)
+                self.encoder.add_module(
+                    f"conv{i}_{index}",
+                    nn.Conv2d(in_conv, out_conv, kernel_size=3, stride=1, padding=1),
+                )
+                self.encoder.add_module(f"bn{i}_{index}", nn.BatchNorm2d(out_conv))
+                self.encoder.add_module(f"dropout{i}_{index}", nn.Dropout(dropout_rate))
+                self.encoder.add_module(f"activation{i}_{index}", activation)
 
-            self.encoder.add_module(f'maxpool{i}', nn.MaxPool2d(kernel_size=2, stride=2, padding=0))
+            self.encoder.add_module(
+                f"maxpool{i}", nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+            )
 
-    def forward(self, x: torch.tensor) -> torch.tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
+
+        Args:
+            x (torch.Tensor): The input tensor
+
+        Returns:
+            x (torch.Tensor): The output tensor
+            skipped_outputs (List[torch.Tensor]): The skipped connections from the encoder
+        """
         skipped_outputs = []
         for module in self.encoder:
             if isinstance(module, nn.MaxPool2d):

@@ -1,8 +1,7 @@
-"""
-This file contains a script to run a program that allows the user to review images and sort them 
-into damaged and intact folders. The program displays two images side by side and the user can choose 
-to keep the data (damaged) or discard it (intact).
-"""
+### OK
+# This file contains a script to run a program that allows the user to review images and sort them
+# into damaged and intact folders. The program displays two images side by side and the user can choose
+# to keep the data (damaged) or discard it (intact).
 
 import os
 import shutil
@@ -12,44 +11,53 @@ from typing import List
 
 from PIL import Image, ImageTk
 
-DATA_PATH = '../../data/'
-MAXAR_FILTERED_PATCHES_PATH = DATA_PATH + 'maxar_filtered_patches/'
-MAXAR_REVIEWED_PATCHES_PATH = DATA_PATH + 'maxar_reviewed_patches/'
-MAXAR_ALL_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + 'all/'
-MAXAR_ALL_POST_PATCHES_PATH = MAXAR_ALL_PATCHES_PATH + 'post/'
-MAXAR_ALL_PRE_PATCHES_PATH = MAXAR_ALL_PATCHES_PATH + 'pre/'
-MAXAR_DAMAGED_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + 'damaged/'
-MAXAR_DAMAGED_POST_PATCHES_PATH = MAXAR_DAMAGED_PATCHES_PATH + 'post/'
-MAXAR_DAMAGED_PRE_PATCHES_PATH = MAXAR_DAMAGED_PATCHES_PATH + 'pre/'
-MAXAR_INTACT_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + 'intact/'
-MAXAR_INTACT_POST_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'post/'
-MAXAR_INTACT_PRE_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + 'pre/'
+DATA_PATH = "../../data/"
+MAXAR_FILTERED_PATCHES_PATH = DATA_PATH + "maxar_filtered_patches/"
+MAXAR_REVIEWED_PATCHES_PATH = DATA_PATH + "maxar_reviewed_patches/"
+MAXAR_ALL_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + "all/"
+MAXAR_ALL_POST_PATCHES_PATH = MAXAR_ALL_PATCHES_PATH + "post/"
+MAXAR_ALL_PRE_PATCHES_PATH = MAXAR_ALL_PATCHES_PATH + "pre/"
+MAXAR_DAMAGED_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + "damaged/"
+MAXAR_DAMAGED_POST_PATCHES_PATH = MAXAR_DAMAGED_PATCHES_PATH + "post/"
+MAXAR_DAMAGED_PRE_PATCHES_PATH = MAXAR_DAMAGED_PATCHES_PATH + "pre/"
+MAXAR_INTACT_PATCHES_PATH = MAXAR_REVIEWED_PATCHES_PATH + "intact/"
+MAXAR_INTACT_POST_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + "post/"
+MAXAR_INTACT_PRE_PATCHES_PATH = MAXAR_INTACT_PATCHES_PATH + "pre/"
 
 IMAGE_SIZE = 900
-TK_RESOLUTION = '2148x1124'
+TK_RESOLUTION = "2148x1124"
+
 
 def _create_data_folders() -> None:
-    """Create pre and post earthquake folders for data.
+    """
+    Create pre and post earthquake folders for data.
     """
 
     # Copy filtered patches to reviewed patches if they exist
-    if os.path.exists(MAXAR_FILTERED_PATCHES_PATH) and not os.path.exists(MAXAR_ALL_PATCHES_PATH):
-        print('▶️ Copying filtered patches...')
+    if os.path.exists(MAXAR_FILTERED_PATCHES_PATH) and not os.path.exists(
+        MAXAR_ALL_PATCHES_PATH
+    ):
+        print("▶️ Copying filtered patches...")
         shutil.copytree(MAXAR_FILTERED_PATCHES_PATH, MAXAR_ALL_PATCHES_PATH)
 
     # Create data folders
-    print('▶️ Creating data folders...')
+    print("▶️ Creating data folders...")
     os.makedirs(MAXAR_DAMAGED_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_DAMAGED_POST_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_DAMAGED_PRE_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_INTACT_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_INTACT_POST_PATCHES_PATH, exist_ok=True)
     os.makedirs(MAXAR_INTACT_PRE_PATCHES_PATH, exist_ok=True)
+
+
 class ImageReviewerApp:
-    """Image reviewer app.
     """
+    Image reviewer app.
+    """
+
     def __init__(self, root: tk.Tk, patch_file_dict: dict) -> None:
-        """Initialize the app.
+        """
+        Initialize the app.
 
         Args:
             root (tk.Tk): Tkinter root.
@@ -86,7 +94,8 @@ class ImageReviewerApp:
         self.update_image()
 
     def update_image(self) -> None:
-        """Update the image.
+        """
+        Update the image.
         """
         # Check if there are no more images to review
         if not self.patch_file_dict:
@@ -101,25 +110,31 @@ class ImageReviewerApp:
             return
 
         # Check if there are no pre or post images
-        if len(self.patch_file_dict[self.current_key]['pre']) < 1 or len(self.patch_file_dict[self.current_key]['post']) < 1:
+        if (
+            len(self.patch_file_dict[self.current_key]["pre"]) < 1
+            or len(self.patch_file_dict[self.current_key]["post"]) < 1
+        ):
             del self.patch_file_dict[self.current_key]
             self.root.after(100, self.update_image)  # Schedule next update
             return
 
         # Get all pre images and one post image
-        self.current_pre_image_file = self.patch_file_dict[self.current_key]['pre'][0]
-        self.current_post_image_file = self.patch_file_dict[self.current_key]['post'][0]
+        self.current_pre_image_file = self.patch_file_dict[self.current_key]["pre"][0]
+        self.current_post_image_file = self.patch_file_dict[self.current_key]["post"][0]
 
         # Show images
         def display_image(image_file: str, panel: Label) -> None:
-            """Display image.
+            """
+            Display image.
 
             Args:
                 image_file (str): Image file.
                 panel (Label): Panel.
             """
             displayed_image = Image.open(image_file)
-            displayed_image = displayed_image.resize((IMAGE_SIZE, IMAGE_SIZE), Image.LANCZOS)
+            displayed_image = displayed_image.resize(
+                (IMAGE_SIZE, IMAGE_SIZE), Image.LANCZOS
+            )
             displayed_image = ImageTk.PhotoImage(displayed_image)
             panel.config(image=displayed_image)
             panel.image = displayed_image
@@ -128,23 +143,29 @@ class ImageReviewerApp:
         display_image(self.current_pre_image_file, self.pre_panel)
         display_image(self.current_post_image_file, self.post_panel)
         # Update title
-        self.root.title(f"🌍 Image Reviewer ({len(self.patch_file_dict)} entries remaining)") 
+        self.root.title(
+            f"🌍 Image Reviewer ({len(self.patch_file_dict)} entries remaining)"
+        )
 
         # Remove the processed key
         # del self.patch_file_dict[first_key]
 
     def keep_data(self) -> None:
-        """Keep the data, i.e. move it to the damaged folder.
+        """
+        Keep the data, i.e. move it to the damaged folder.
         """
         # Move image to damaged folder
         shutil.move(self.current_pre_image_file, MAXAR_DAMAGED_PRE_PATCHES_PATH)
         shutil.move(self.current_post_image_file, MAXAR_DAMAGED_POST_PATCHES_PATH)
 
         # Delete shown images
-        del self.patch_file_dict[self.current_key]['pre'][0]
-        del self.patch_file_dict[self.current_key]['post'][0]
+        del self.patch_file_dict[self.current_key]["pre"][0]
+        del self.patch_file_dict[self.current_key]["post"][0]
 
-        if len(self.patch_file_dict[self.current_key]['pre']) < 1 or len(self.patch_file_dict[self.current_key]['post']) < 1:
+        if (
+            len(self.patch_file_dict[self.current_key]["pre"]) < 1
+            or len(self.patch_file_dict[self.current_key]["post"]) < 1
+        ):
             del self.patch_file_dict[self.current_key]
 
         # Schedule next update
@@ -153,17 +174,21 @@ class ImageReviewerApp:
         print(f"⚠️ Damaged: {self.current_key}")
 
     def discard_data(self) -> None:
-        """Discard the data, i.e. move it to the intact folder.
+        """
+        Discard the data, i.e. move it to the intact folder.
         """
         # Move image to intact folder
         shutil.move(self.current_pre_image_file, MAXAR_INTACT_PRE_PATCHES_PATH)
         shutil.move(self.current_post_image_file, MAXAR_INTACT_POST_PATCHES_PATH)
 
         # Delete shown images
-        del self.patch_file_dict[self.current_key]['pre'][0]
-        del self.patch_file_dict[self.current_key]['post'][0]
+        del self.patch_file_dict[self.current_key]["pre"][0]
+        del self.patch_file_dict[self.current_key]["post"][0]
 
-        if len(self.patch_file_dict[self.current_key]['pre']) < 1 or len(self.patch_file_dict[self.current_key]['post']) < 1:
+        if (
+            len(self.patch_file_dict[self.current_key]["pre"]) < 1
+            or len(self.patch_file_dict[self.current_key]["post"]) < 1
+        ):
             del self.patch_file_dict[self.current_key]
 
         # Schedule next update
@@ -171,8 +196,10 @@ class ImageReviewerApp:
 
         print(f"🛡️ Intact: {self.current_key}")
 
+
 def _get_short_patch_file_name(file: str) -> str:
-    """Get short patch file name.
+    """
+    Get short patch file name.
 
     Args:
         file (str): File path.
@@ -180,48 +207,57 @@ def _get_short_patch_file_name(file: str) -> str:
     Returns:
         str: Short patch file name.
     """
-    short_file = file.split('/')[-1]
-    short_file = short_file.split('_')[0] + '_' + short_file.split('_')[3]
-    short_file = short_file.split('.')[0]
+    short_file = file.split("/")[-1]
+    short_file = short_file.split("_")[0] + "_" + short_file.split("_")[3]
+    short_file = short_file.split(".")[0]
     return short_file
 
+
 def _get_patch_files() -> List[str]:
-    """Get patch files.
+    """
+    Get patch files.
 
     Returns:
         List[str]: List of patch files.
     """
     dict = {}
     MAXAR_ALL_POST_PATCHES_PATH
-    all_pre_patch_files = [f"{MAXAR_ALL_PRE_PATCHES_PATH}{file}" for file in os.listdir(MAXAR_ALL_PRE_PATCHES_PATH)]
-    all_post_patch_files = [f"{MAXAR_ALL_POST_PATCHES_PATH}{file}" for file in os.listdir(MAXAR_ALL_POST_PATCHES_PATH)]
+    all_pre_patch_files = [
+        f"{MAXAR_ALL_PRE_PATCHES_PATH}{file}"
+        for file in os.listdir(MAXAR_ALL_PRE_PATCHES_PATH)
+    ]
+    all_post_patch_files = [
+        f"{MAXAR_ALL_POST_PATCHES_PATH}{file}"
+        for file in os.listdir(MAXAR_ALL_POST_PATCHES_PATH)
+    ]
 
     # Fill dictionary with pre data
     for all_pre_patch_file in all_pre_patch_files:
         key = _get_short_patch_file_name(all_pre_patch_file)
         if key not in dict:
             dict[key] = {}
-            dict[key]['pre'] = []
-            dict[key]['post'] = []
+            dict[key]["pre"] = []
+            dict[key]["post"] = []
 
-        dict[key]['pre'].append(all_pre_patch_file)
+        dict[key]["pre"].append(all_pre_patch_file)
 
     # Fill dictionary with post data
     for all_post_patch_file in all_post_patch_files:
         key = _get_short_patch_file_name(all_post_patch_file)
         if key not in dict:
             dict[key] = {}
-            dict[key]['pre'] = []
-            dict[key]['post'] = []
+            dict[key]["pre"] = []
+            dict[key]["post"] = []
 
-        dict[key]['post'].append(all_post_patch_file)
+        dict[key]["post"].append(all_post_patch_file)
 
     # Remove entries with no pre or no post data
     for key in list(dict):
-        if len(dict[key]['pre']) < 1 or len(dict[key]['post']) < 1:
+        if len(dict[key]["pre"]) < 1 or len(dict[key]["post"]) < 1:
             del dict[key]
 
     return dict
+
 
 if __name__ == "__main__":
     root = tk.Tk()
