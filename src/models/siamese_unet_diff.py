@@ -5,8 +5,8 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from decoder import Decoder
-from encoder import Encoder
+from src.models.decoder import Decoder
+from src.models.encoder import Encoder
 
 
 class SiameseUNetDiff(nn.Module):
@@ -41,6 +41,10 @@ class SiameseUNetDiff(nn.Module):
             dropout_rate (float): The dropout rate
         """
         super().__init__()
+        self.encoder_channels = encoder_channels
+        self.decoder_channels = decoder_channels
+        self.activation = activation
+        self.dropout_rate = dropout_rate
 
         self.encoder = Encoder(
             conv_channels=encoder_channels,

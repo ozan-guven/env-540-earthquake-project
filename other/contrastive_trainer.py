@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.cuda.amp import autocast
 
-from src.utils.trainer import Trainer
+from trainer.trainer import Trainer
 
 class ContrastiveTrainer(Trainer):
     """

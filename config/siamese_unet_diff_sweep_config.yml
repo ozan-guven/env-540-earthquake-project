@@ -1,0 +1,57 @@
+method: random
+metric:
+  goal: maximize
+  name: val_iou
+
+run_cap: 100
+
+parameters:
+  use_scaler:
+    distribution: constant
+    value: True
+  
+  loss_name:
+    distribution: categorical
+    values:
+      - bce
+      - dice
+      - iou
+
+  num_epochs:
+    distribution: constant
+    value: 10
+
+  accumulation_steps:
+    distribution: categorical
+    values:
+      - 1
+      - 2
+      - 4
+      - 8
+  
+  evaluation_steps:
+    distribution: constant
+    value: 100
+
+  learning_rate:
+    distribution: log_uniform_values
+    max: 1e-2
+    min: 1e-5
+
+  weight_decay:
+    distribution: log_uniform_values
+    max: 1e-1
+    min: 1e-5
+
+  dropout_rate:
+    distribution: uniform
+    max: 0.5
+    min: 0
+    
+  channels:
+    distribution: categorical
+    values:
+      - [[[3, 16], [16, 32], [32, 64]], [[128, 32], [64, 16], [32, 1]]]
+      - [[[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128]], [[256, 128, 128, 64], [128, 64, 64, 32], [64, 32, 16], [32, 16, 1]]]
+      - [[[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128], [128, 256, 256, 256]], [[512, 256, 256, 128], [256, 128, 128, 64], [128, 64, 64, 32], [64, 32, 16], [32, 16, 1]]]
+

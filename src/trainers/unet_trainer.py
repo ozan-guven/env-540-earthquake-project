@@ -4,9 +4,9 @@
 import torch
 from torch import nn
 from torch.cuda.amp import autocast
-
 from torch.optim import Optimizer
-from src.utils.trainer import Trainer
+
+from src.trainers.trainer import Trainer
 
 from src.config import DEVICE
 
@@ -62,25 +62,15 @@ class UNetTrainer(Trainer):
         name = self.model.__class__.__name__
         name += f"_{optimizer.__class__.__name__}optim"
         name += f"_{num_epochs}epochs"
-        name += f"_{learning_rate}lr"
+        name += f"_{str(learning_rate).replace('.', '')}lr"
         name += f"_{self.criterion.__class__.__name__}loss"
         name += f"_{self.model.activation.__class__.__name__}act"
-        name += f"_{self.model.dropout_rate}dropout"
+        name += f"_{str(self.model.dropout_rate).replace('.', '')}dropout"
         name += f"_{self.accumulation_steps}accstep"
         name += f"_{self.evaluation_steps}evalstep"
-        encoder_channels_str = "-".join(
-            [
-                "-".join([str(channel) for channel in channels])
-                for channels in self.model.encoder_channels
-            ]
-        )
+        encoder_channels_str = sum(len(channels) for channels in self.model.encoder_channels)
         name += f"_{encoder_channels_str}encchan"
-        decoder_channels_str = "-".join(
-            [
-                "-".join([str(channel) for channel in channels])
-                for channels in self.model.decoder_channels
-            ]
-        )
+        decoder_channels_str = sum(len(channels) for channels in self.model.decoder_channels)
         name += f"_{decoder_channels_str}decchan"
 
         return name

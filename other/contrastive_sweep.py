@@ -14,9 +14,9 @@ from torch.utils.data import DataLoader
 from src.contrastive.contrastive_dataset import ContrastiveDataset
 from src.contrastive.contrastive_loss import ContrastiveLoss
 from src.models.siamese import Siamese
-from src.utils.trainer import Trainer
+from trainers.trainer import Trainer
 
-from src.utils.sweeper import Sweeper
+from sweepers.sweeper import Sweeper
 
 DATA_PATH = '../../data/'
 MAXAR_REVIEWED_PATCHES_PATH = 'maxar_reviewed_patches/'

@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 import cv2
 
 
-class ImageDataset(Dataset):
+class SegmentationDataset(Dataset):
     """
     Dataset of images with pre and post earthquake images and the corresponding mask for the post earthquake image.
     """
@@ -61,8 +61,6 @@ class ImageDataset(Dataset):
                         ],
                         p=0.5,
                     ),
-                    # Shadow
-                    A.RandomShadow(p=0.25),
                     # Rotate, flip, scale, shift
                     A.HorizontalFlip(p=0.5),
                     A.VerticalFlip(p=0.5),
@@ -141,7 +139,11 @@ class ImageDataset(Dataset):
 
         # Get pre image
         pre_image = np.array(Image.open(pre_image_path).convert("RGB"))
-        post_image = np.array(Image.open(post_image_path).convert("RGB"))
+        try:
+            post_image = np.array(Image.open(post_image_path).convert("RGB"))
+        except:
+            print(f'❌ Error opening {post_image_path}, retrying...')
+            return self.__getitem__(idx)
         # The mask might be None if it does not exist, in that case, we create a black image
         label = None
         if mask_path is not None:

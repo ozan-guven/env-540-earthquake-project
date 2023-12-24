@@ -27,7 +27,7 @@ def plot_pre_post_mask(
     """
 
     plt.figure(figsize=(20, 4))
-    n_subplots = 3 if pred is None else 4
+    n_subplots = 3 if pred is None else 5
     gs = gridspec.GridSpec(1, n_subplots, width_ratios=[1] * n_subplots)
 
     # Pre image
@@ -65,6 +65,16 @@ def plot_pre_post_mask(
         ax = plt.subplot(gs[3])
         ax.imshow(pred)
         ax.set_title("Prediction")
+        ax.axis("off")
+        
+        # Difference
+        diff = torch.zeros_like(post_image)
+        diff[(mask == 1) & (pred == 1)] = torch.Tensor([0, 1, 0])
+        diff[(mask == 1) & (pred == 0)] = torch.Tensor([1, 0, 0])
+        diff[(mask == 0) & (pred == 1)] = torch.Tensor([0, 0, 1])
+        ax = plt.subplot(gs[4])
+        ax.imshow(diff)
+        ax.set_title("Difference")
         ax.axis("off")
 
     # label

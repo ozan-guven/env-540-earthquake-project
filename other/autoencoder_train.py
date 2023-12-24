@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset import SatelliteImageDataset, get_split_image_files
 from src.models.autoencoder import ConvAutoencoder
-from src.utils.trainer import Trainer
+from trainers.trainer import Trainer
 
 DATA_PATH = '../../data/'
 MAXAR_PRE_PATH = DATA_PATH + 'maxar_patches_city/pre/'

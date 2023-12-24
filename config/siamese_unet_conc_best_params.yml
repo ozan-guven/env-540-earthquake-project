@@ -1,0 +1,11 @@
+use_scaler: True
+num_epochs: 100
+evaluation_steps: 100
+
+loss_name: iou
+accumulation_steps: 1
+learning_rate: 5e-4
+weight_decay: 2e-4
+dropout_rate: 0.02
+encoder_channels: [[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128], [128, 256, 256, 256]]
+decoder_channels: [[768, 256, 256, 128], [384, 128, 128, 64], [192, 64, 64, 32], [96, 32, 16], [48, 16, 1]]

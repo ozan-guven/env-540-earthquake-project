@@ -1,5 +1,4 @@
-### OK
-# This script is used to train the UNet model.
+# This script is used to train the Siamese UNet model with concatenation.
 
 import sys
 from typing import List
@@ -8,21 +7,21 @@ from pathlib import Path
 GLOBAL_DIR = Path(__file__).parent / ".." / ".."
 sys.path.append(str(GLOBAL_DIR))
 
+from src.models.siamese_unet_conc import SiameseUNetConc
+
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 import torch.nn as nn
 
-from src.models.unet import UNet
 from src.config import SEED, DEVICE, BATCH_SIZE
 from src.utils.random import set_seed
-from src.trainers.unet_trainer import UNetTrainer
+from src.trainers.siamese_unet_conc_trainer import SiameseUNetConcTrainer
 from src.utils.segmentation_train import get_dataloaders, get_criterion, get_optimizer
 from src.utils.parser import get_config
 
 DATA_PATH = str(GLOBAL_DIR / "data") + "/"
-
 
 def get_model(
         encoder_channels: List[List[int]],
@@ -40,7 +39,7 @@ def get_model(
     Returns:
         nn.Module: The model
     """
-    return UNet(
+    return SiameseUNetConc(
         encoder_channels=encoder_channels,
         decoder_channels=decoder_channels,
         dropout_rate=dropout_rate
@@ -49,11 +48,11 @@ def get_model(
 
 def get_trainer(
         model: nn.Module, 
-        criterion: nn.Module, 
+        criterion: nn.Module,
         accumulation_steps: int,
         evaluation_steps: int,
         use_scaler: bool,
-        ) -> UNetTrainer:
+    ) -> SiameseUNetConcTrainer:
     """
     Get the trainer.
 
@@ -65,9 +64,9 @@ def get_trainer(
         use_scaler (bool): Whether to use the scaler
 
     Returns:
-        UNetTrainer: The trainer
+        SiameseUNetConcTrainer: The trainer
     """
-    return UNetTrainer(
+    return SiameseUNetConcTrainer(
         model=model,
         criterion=criterion,
         accumulation_steps=accumulation_steps,
@@ -81,7 +80,8 @@ if __name__ == "__main__":
     set_seed(SEED)
 
     # Get parameters from config file
-    config = get_config(f"{GLOBAL_DIR}/config/unet_best_params.yml")
+    config = get_config(f"{GLOBAL_DIR}/config/siamese_unet_conc_best_params.yml")
+    print(config)
     encoder_channels = config["encoder_channels"]
     decoder_channels = config["decoder_channels"]
     dropout_rate = float(config["dropout_rate"])

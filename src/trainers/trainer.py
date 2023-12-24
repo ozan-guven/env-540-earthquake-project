@@ -103,6 +103,7 @@ class Trainer(ABC):
         self.use_scaler = use_scaler
 
         self.best_eval_val_loss = np.inf
+        self.best_eval_val_iou = 0
         self.eval_train_loss = 0
         self.eval_val_loss = 0
 
@@ -133,7 +134,8 @@ class Trainer(ABC):
         optimizer: Optimizer,
         num_epochs: int,
         learning_rate: int = 0,
-        save_path: str = "best_model.pth",
+        save_model: bool = True,
+        sweeping: bool = False,
     ) -> dict:
         """
         Train the UNet model.
@@ -144,7 +146,8 @@ class Trainer(ABC):
             optimizer (Optimizer): The optimizer to use during training
             num_epochs (int): The number of epochs to train
             learning_rate (int, optional): The learning rate to use, defaults to 0
-            save_path (str, optional): The path to save the best model, defaults to 'best_model.pth'
+            save_model (bool, optional): Whether to save the best model, defaults to True
+            sweeping (bool, optional): Whether the training is part of a sweeping, defaults to False
 
         Throws:
             ValueError: If num_epochs is not a positive integer.
@@ -162,24 +165,23 @@ class Trainer(ABC):
         name = f"{timestamp}_{name}"
 
         # Create a folder in data/models folder with the name of the model
-        model_dir = f"../../data/models/{self.__class__.__name__.lower()}/"
+        model_dir = f"../../data/models/{self.model.__class__.__name__.lower()}/"
         os.makedirs(model_dir, exist_ok=True)
 
-        save_path = f"{model_dir}{name}.pth"
-
-        # save_path = f"../../data/models/{name}.pth"
+        save_path = f"{model_dir}{name}.pth" if save_model else None
 
         # Setup WandB and watch
-        wandb.init(
-            project=self.__class__.__name__.lower(),
-            config={
-                "architecture": self.__class__.__name__,
-                "name": name,
-                "dataset": "Maxar 2023 Turkish Earthquake",
-                "epochs": num_epochs,
-                "learning_rate": learning_rate,
-            },
-        )
+        if not sweeping:
+            wandb.init(
+                project=self.__class__.__name__.lower(),
+                config={
+                    "architecture": self.__class__.__name__,
+                    "name": name,
+                    "dataset": "Maxar 2023 Turkish Earthquake",
+                    "epochs": num_epochs,
+                    "learning_rate": learning_rate,
+                },
+            )
         wandb.watch(self.model, log_freq=4, log="all")
 
         print(f"🚀 Training {self.__class__.__name__} method for {num_epochs} epochs...")
@@ -222,7 +224,9 @@ class Trainer(ABC):
                     bar=bar,
                 )
 
-        wandb.finish()
+        wandb.unwatch(self.model)
+        if not sweeping:
+            wandb.finish()
 
         return statistics
 
@@ -253,20 +257,20 @@ class Trainer(ABC):
         optimizer: Optimizer,
         statistics: dict,
         scaler: GradScaler,
-        save_path="best_model.pth",
+        save_path: str = None,
         bar: tqdm = None,
     ) -> None:
         """
         Train the model for one epoch.
 
         Args:
-            train_loader (DataLoader): Training data loader.
-            val_loader (DataLoader): Validation data loader.
-            optimizer (Optimizer): Optimizer to use during training.
-            statistics (dict): Statistics of the training.
-            scaler (GradScaler): Scaler to use.
-            save_path (str, optional): Path to save the best model. Defaults to 'best_model.pth'.
-            bar (tqdm, optional): Progress bar to use. Defaults to None.
+            train_loader (DataLoader): The training data loader
+            val_loader (DataLoader): The validation data loader
+            optimizer (Optimizer): The optimizer to use during training
+            statistics (dict): The statistics of the training
+            scaler (GradScaler): The scaler to use
+            save_path (str, optional): The path to save the best model, defaults to None
+            bar (tqdm, optional): The progress bar to use, efaults to None
         """
         self.model.train()
 
@@ -297,23 +301,24 @@ class Trainer(ABC):
                     }
                 )
 
-            if (batch_idx + 1) % self.evaluation_steps == 0 or (
-                batch_idx + 1 == len(train_loader)
-            ):
+            if (batch_idx + 1) % self.evaluation_steps == 0 or (batch_idx + 1 == len(train_loader)):
                 # Get and update training loss
                 self.eval_train_loss = total_train_loss / n_train_loss
                 statistics["train_loss"].append(train_loss)
                 total_train_loss = 0
                 n_train_loss = 0
 
-                # Get validation loss and update best model
+                # Get validation loss ans statistics
                 stats = self._evaluate(val_loader)
                 self.eval_val_loss = stats["loss"]
                 statistics["val_loss"].append(self.eval_val_loss)
-                if self.eval_val_loss < self.best_eval_val_loss:
-                    print(f"🎉 Saving model with new best loss: {self.eval_val_loss:.4}")
+                
+                # Get validation iou and update best model
+                self.eval_val_iou = stats["iou"].mean()
+                if self.eval_val_iou > self.best_eval_val_iou and save_path is not None:
+                    print(f"🎉 Saving model with new best IoU: {self.eval_val_iou:.4f}")
                     torch.save(self.model.state_dict(), save_path)
-                    self.best_eval_val_loss = self.eval_val_loss
+                    self.best_eval_val_iou = self.eval_val_iou
 
                 # Log statistics
                 statistics["val_acc"].append(stats["accuracy"].mean())
@@ -339,6 +344,7 @@ class Trainer(ABC):
                         {
                             "batch": f"{batch_idx + 1}/{len(train_loader)}",
                             "train_loss": f"{self.eval_train_loss:.4f}",
+                            "val_loss": f"{self.eval_val_loss:.4f}",
                         }
                     )
                 wandb.log(
@@ -391,7 +397,9 @@ class Trainer(ABC):
                 precs.append(binary_precision(pred, target).cpu().item())
                 recs.append(binary_recall(pred, target).cpu().item())
                 f1s.append(binary_f1_score(pred, target).cpu().item())
-                ious.append(binary_jaccard_index(pred, target).cpu().item())
+                iou = binary_jaccard_index(pred, target).cpu().item()
+                if not np.isnan(iou):
+                    ious.append(iou)
                 dice_scores.append(dice(pred, target).cpu().item())
 
         total_val_loss /= len(loader)
