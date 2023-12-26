@@ -16,6 +16,8 @@ from torch.optim import Optimizer
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 
+import pandas as pd
+
 from torchmetrics.functional.classification import (
     binary_accuracy,
     binary_precision,
@@ -24,6 +26,9 @@ from torchmetrics.functional.classification import (
     binary_jaccard_index,
     dice,
 )
+
+RESULTS_FOLDER_PATH = "../../data/results/"
+SAVE_STATS_PATH = f"{RESULTS_FOLDER_PATH}results.csv"
 
 
 class EarlyStopper:
@@ -229,7 +234,51 @@ class Trainer(ABC):
             wandb.finish()
 
         return statistics
+    
+    
+    def test(self, model_path: str, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader) -> dict:
+        # Load model
+        self.model.load_state_dict(torch.load(model_path))
+        print('✅ Using model at ', model_path)
 
+        # Create pandas dataframe to store results
+        results = pd.DataFrame()
+        results.loc[0, 'name'] = self.model.__class__.__name__
+        
+        metrics = ['loss', 'accuracy', 'precision', 'recall', 'f1', 'iou', 'dice']
+        
+        print('📊 Results:')
+        for name, loader in [('train', train_loader), ('val', val_loader), ('test', test_loader)]:
+            stats = self._evaluate(loader)
+            for metric in metrics:
+                col_name = f"{name}_{metric}"
+                std_col_name = f"{col_name}_std"
+                
+                # Print results
+                metric_display = metric.capitalize()
+                if metric == 'loss':
+                    print(f"\t{name} {metric_display}: {stats[metric]:.4f}")
+                    
+                    # Save the results to the dataframe
+                    results.loc[0, col_name] = stats[metric]
+                else:
+                    print(f"\t{name} {metric_display}: {stats[metric].mean():.4f}")
+                    
+                    # Save the results to the dataframe
+                    results.loc[0, col_name] = stats[metric].mean()
+                    results.loc[0, std_col_name] = stats[metric].std()
+        
+        # Create the folder if it does not exist
+        os.makedirs(RESULTS_FOLDER_PATH, exist_ok=True)
+            
+        # Save the results to a csv file
+        if not os.path.isfile(SAVE_STATS_PATH):
+            results.to_csv(SAVE_STATS_PATH, index=False)
+        else:
+            results.to_csv(SAVE_STATS_PATH, mode='a', header=False, index=False)
+        
+        return stats
+        
     @abstractmethod
     def _forward_pass(
         self, batch: tuple

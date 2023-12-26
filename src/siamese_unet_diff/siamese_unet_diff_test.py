@@ -21,6 +21,7 @@ from src.utils.segmentation_train import get_dataloaders, get_criterion, get_opt
 from src.utils.parser import get_config
 
 DATA_PATH = str(GLOBAL_DIR / "data") + "/"
+MODELS_PATH = f'{DATA_PATH}models/'
 
 
 def get_model(
@@ -81,7 +82,6 @@ if __name__ == "__main__":
 
     # Get parameters from config file
     config = get_config(f"{GLOBAL_DIR}/config/siamese_unet_diff_best_params.yml")
-    print(config)
     encoder_channels = config["encoder_channels"]
     decoder_channels = config["decoder_channels"]
     dropout_rate = float(config["dropout_rate"])
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     use_scaler = bool(config["use_scaler"])
     epochs = int(config["num_epochs"])
 
-    # Get dataloaders, model, criterion, optimizer, and trainer
+    # Get dataloaders, model, criterion and trainer
     train_loader, test_loader, val_loader = get_dataloaders(batch_size=BATCH_SIZE)
     model = get_model(
         encoder_channels=encoder_channels,
@@ -101,11 +101,6 @@ if __name__ == "__main__":
         dropout_rate=dropout_rate,
     )
     criterion = get_criterion(criterion_name=loss_name)
-    optimizer = get_optimizer(
-        model, 
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-    )
     trainer = get_trainer(
         model, 
         criterion,
@@ -114,11 +109,12 @@ if __name__ == "__main__":
         use_scaler=use_scaler,
     )
 
-    # Train the model
-    statistics = trainer.train(
+    # Test the model
+    model_save_dict = f'{MODELS_PATH}siameseunetdiff/'
+    model_save_path = sorted(os.listdir(model_save_dict))[-1]
+    statistics = trainer.test(
+        model_path=f'{model_save_dict}{model_save_path}',
         train_loader=train_loader,
         val_loader=val_loader,
-        optimizer=optimizer,
-        num_epochs=epochs,
-        learning_rate=learning_rate,
+        test_loader=test_loader,
     )

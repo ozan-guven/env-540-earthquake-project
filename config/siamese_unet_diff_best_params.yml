@@ -4,8 +4,8 @@ evaluation_steps: 100
 
 loss_name: dice
 accumulation_steps: 2
-learning_rate: 4e-4
+learning_rate: 3e-4
 weight_decay: 2e-3
-dropout_rate: 0.16
+dropout_rate: 0.05
 encoder_channels: [[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128], [128, 256, 256, 256]]
 decoder_channels: [[512, 256, 256, 128], [256, 128, 128, 64], [128, 64, 64, 32], [64, 32, 16], [32, 16, 1]]

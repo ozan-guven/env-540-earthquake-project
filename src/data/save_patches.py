@@ -4,7 +4,7 @@
 # ThreadPoolExecutor to save patches in parallel. A patch is only saved if it meets the following criteria:
 #    - Less than 5% black pixels
 #    - Less than 500 mean sum(RGB) pixel values
-#    - Less than 4% variance in pixel values
+#    - More than 4% variance in pixel values
 
 import os
 import numpy as np

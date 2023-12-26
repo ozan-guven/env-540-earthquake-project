@@ -45,7 +45,7 @@ class Decoder(nn.Module):
             for index, (in_conv, out_conv) in enumerate(zip(convs, convs[1:])):
                 self.decoder.add_module(
                     f"conv{i}_{index}",
-                    nn.Conv2d(in_conv, out_conv, kernel_size=3, padding=1),
+                    nn.Conv2d(in_conv, out_conv, kernel_size=3, stride=1, padding=1),
                 )
                 if i < len(conv_channels) - 1 or index < len(convs) - 2:
                     self.decoder.add_module(f"bn{i}_{index}", nn.BatchNorm2d(out_conv))

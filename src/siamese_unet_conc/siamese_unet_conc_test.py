@@ -1,4 +1,4 @@
-# This script is used to train the Siamese UNet model with difference.
+# This script is used to train the Siamese UNet model with concatenation.
 
 import sys
 from typing import List
@@ -6,6 +6,8 @@ from pathlib import Path
 
 GLOBAL_DIR = Path(__file__).parent / ".." / ".."
 sys.path.append(str(GLOBAL_DIR))
+
+from src.models.siamese_unet_conc import SiameseUNetConc
 
 import os
 
@@ -15,19 +17,18 @@ import torch.nn as nn
 
 from src.config import SEED, DEVICE, BATCH_SIZE
 from src.utils.random import set_seed
-from src.models.siamese_unet_diff import SiameseUNetDiff
-from src.trainers.siamese_unet_diff_trainer import SiameseUNetDiffTrainer
+from src.trainers.siamese_unet_conc_trainer import SiameseUNetConcTrainer
 from src.utils.segmentation_train import get_dataloaders, get_criterion, get_optimizer
 from src.utils.parser import get_config
 
 DATA_PATH = str(GLOBAL_DIR / "data") + "/"
-
+MODELS_PATH = f'{DATA_PATH}models/'
 
 def get_model(
         encoder_channels: List[List[int]],
         decoder_channels: List[List[int]],
         dropout_rate: float
-) -> nn.Module:
+        ) -> nn.Module:
     """
     Get the model.
 
@@ -39,7 +40,7 @@ def get_model(
     Returns:
         nn.Module: The model
     """
-    return SiameseUNetDiff(
+    return SiameseUNetConc(
         encoder_channels=encoder_channels,
         decoder_channels=decoder_channels,
         dropout_rate=dropout_rate
@@ -52,7 +53,7 @@ def get_trainer(
         accumulation_steps: int,
         evaluation_steps: int,
         use_scaler: bool,
-    ) -> SiameseUNetDiffTrainer:
+    ) -> SiameseUNetConcTrainer:
     """
     Get the trainer.
 
@@ -66,7 +67,7 @@ def get_trainer(
     Returns:
         SiameseUNetConcTrainer: The trainer
     """
-    return SiameseUNetDiffTrainer(
+    return SiameseUNetConcTrainer(
         model=model,
         criterion=criterion,
         accumulation_steps=accumulation_steps,
@@ -80,20 +81,16 @@ if __name__ == "__main__":
     set_seed(SEED)
 
     # Get parameters from config file
-    config = get_config(f"{GLOBAL_DIR}/config/siamese_unet_diff_best_params.yml")
-    print(config)
+    config = get_config(f"{GLOBAL_DIR}/config/siamese_unet_conc_best_params.yml")
     encoder_channels = config["encoder_channels"]
     decoder_channels = config["decoder_channels"]
     dropout_rate = float(config["dropout_rate"])
     loss_name = config["loss_name"]
-    learning_rate = float(config["learning_rate"])
-    weight_decay = float(config["weight_decay"])
     accumulation_steps = int(config["accumulation_steps"])
     evaluation_steps = int(config["evaluation_steps"])
     use_scaler = bool(config["use_scaler"])
-    epochs = int(config["num_epochs"])
 
-    # Get dataloaders, model, criterion, optimizer, and trainer
+    # Get dataloaders, model, criterion and trainer
     train_loader, test_loader, val_loader = get_dataloaders(batch_size=BATCH_SIZE)
     model = get_model(
         encoder_channels=encoder_channels,
@@ -101,11 +98,6 @@ if __name__ == "__main__":
         dropout_rate=dropout_rate,
     )
     criterion = get_criterion(criterion_name=loss_name)
-    optimizer = get_optimizer(
-        model, 
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-    )
     trainer = get_trainer(
         model, 
         criterion,
@@ -114,11 +106,12 @@ if __name__ == "__main__":
         use_scaler=use_scaler,
     )
 
-    # Train the model
-    statistics = trainer.train(
+    # Test the model
+    model_save_dict = f'{MODELS_PATH}siameseunetconc/'
+    model_save_path = sorted(os.listdir(model_save_dict))[-1]
+    statistics = trainer.test(
+        model_path=f'{model_save_dict}{model_save_path}',
         train_loader=train_loader,
         val_loader=val_loader,
-        optimizer=optimizer,
-        num_epochs=epochs,
-        learning_rate=learning_rate,
+        test_loader=test_loader,
     )

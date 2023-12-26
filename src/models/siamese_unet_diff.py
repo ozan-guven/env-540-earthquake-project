@@ -76,7 +76,7 @@ class SiameseUNetDiff(nn.Module):
         for pre_skip_output, post_skip_output in zip(
             pre_skip_outputs, post_skip_outputs
         ):
-            skip_outputs.append(pre_skip_output - post_skip_output)
+            skip_outputs.append(torch.abs(pre_skip_output - post_skip_output))
 
         # Decoding with skip connections
         for module in self.decoder.decoder:
