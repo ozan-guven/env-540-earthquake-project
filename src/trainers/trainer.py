@@ -82,6 +82,7 @@ class Trainer(ABC):
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
+        name: str = '',
     ) -> None:
         """
         Initialize the trainer.
@@ -93,6 +94,7 @@ class Trainer(ABC):
             evaluation_steps (int, optional): The evaluation steps for evaluation
             print_statistics (bool, optional): Whether to print statistics during training, defaults to False
             use_scaler (bool, optional): Whether to use scaler, defaults to False
+            name (str, optional): The name of the model, defaults to None
 
         Throws:
             ValueError: If accumulation_steps is not a positive integer
@@ -106,31 +108,28 @@ class Trainer(ABC):
         self.evaluation_steps = evaluation_steps
         self.print_statistics = print_statistics
         self.use_scaler = use_scaler
+        self.name = name
 
         self.best_eval_val_loss = np.inf
         self.best_eval_val_iou = 0
         self.eval_train_loss = 0
         self.eval_val_loss = 0
 
-    @abstractmethod
     def _get_name(
         self, optimizer: Optimizer, num_epochs: int, learning_rate: int
     ) -> str:
         """
-        Get the name of the model. This should be implemented by the child class.
+        Get the name of the model.
 
         Args:
             optimizer (Optimizer): The optimizer used
             num_epochs (int): The number of epochs
             learning_rate (int): The learning rate
 
-        Raises:
-            NotImplementedError: if not implemented by child class
-
         Returns:
             str: The name of the model
         """
-        raise NotImplementedError
+        return self.name
 
     def train(
         self,
@@ -201,12 +200,6 @@ class Trainer(ABC):
             "val_f1": [],
             "val_iou": [],
             "val_dice": [],
-            "val_acc_std": [],
-            "val_prec_std": [],
-            "val_rec_std": [],
-            "val_f1_std": [],
-            "val_iou_std": [],
-            "val_dice_std": [],
             "train_loader_length": len(train_loader),
             "val_loader_length": len(val_loader),
             "num_epochs": num_epochs,
@@ -252,7 +245,6 @@ class Trainer(ABC):
             stats = self._evaluate(loader)
             for metric in metrics:
                 col_name = f"{name}_{metric}"
-                std_col_name = f"{col_name}_std"
                 
                 # Print results
                 metric_display = metric.capitalize()
@@ -262,20 +254,20 @@ class Trainer(ABC):
                     # Save the results to the dataframe
                     results.loc[0, col_name] = stats[metric]
                 else:
-                    print(f"\t{name} {metric_display}: {stats[metric].mean():.4f}")
+                    print(f"\t{name} {metric_display}: {stats[metric]:.4f}")
                     
                     # Save the results to the dataframe
-                    results.loc[0, col_name] = stats[metric].mean()
-                    results.loc[0, std_col_name] = stats[metric].std()
+                    number = np.round(stats[metric] * 100, 2)
+                    results.loc[0, col_name] = rf"${number}$" # LaTeX format
         
         # Create the folder if it does not exist
         os.makedirs(RESULTS_FOLDER_PATH, exist_ok=True)
             
         # Save the results to a csv file
         if not os.path.isfile(SAVE_STATS_PATH):
-            results.to_csv(SAVE_STATS_PATH, index=False)
+            results.to_csv(SAVE_STATS_PATH, index=False, sep='&')
         else:
-            results.to_csv(SAVE_STATS_PATH, mode='a', header=False, index=False)
+            results.to_csv(SAVE_STATS_PATH, mode='a', header=False, index=False, sep='&')
         
         return stats
         
@@ -363,26 +355,19 @@ class Trainer(ABC):
                 statistics["val_loss"].append(self.eval_val_loss)
                 
                 # Get validation iou and update best model
-                self.eval_val_iou = stats["iou"].mean()
+                self.eval_val_iou = stats["iou"]
                 if self.eval_val_iou > self.best_eval_val_iou and save_path is not None:
                     print(f"🎉 Saving model with new best IoU: {self.eval_val_iou:.4f}")
                     torch.save(self.model.state_dict(), save_path)
                     self.best_eval_val_iou = self.eval_val_iou
 
                 # Log statistics
-                statistics["val_acc"].append(stats["accuracy"].mean())
-                statistics["val_prec"].append(stats["precision"].mean())
-                statistics["val_rec"].append(stats["recall"].mean())
-                statistics["val_f1"].append(stats["f1"].mean())
-                statistics["val_iou"].append(stats["iou"].mean())
-                statistics["val_dice"].append(stats["dice"].mean())
-
-                statistics["val_acc_std"].append(stats["accuracy"].std())
-                statistics["val_prec_std"].append(stats["precision"].std())
-                statistics["val_rec_std"].append(stats["recall"].std())
-                statistics["val_f1_std"].append(stats["f1"].std())
-                statistics["val_iou_std"].append(stats["iou"].std())
-                statistics["val_dice_std"].append(stats["dice"].std())
+                statistics["val_acc"].append(stats["accuracy"])
+                statistics["val_prec"].append(stats["precision"])
+                statistics["val_rec"].append(stats["recall"])
+                statistics["val_f1"].append(stats["f1"])
+                statistics["val_iou"].append(stats["iou"])
+                statistics["val_dice"].append(stats["dice"])
 
                 if bar is None and self.print_statistics:
                     print(
@@ -400,18 +385,12 @@ class Trainer(ABC):
                     {
                         "train_loss": self.eval_train_loss,
                         "val_loss": self.eval_val_loss,
-                        "val_acc": stats["accuracy"].mean(),
-                        "val_prec": stats["precision"].mean(),
-                        "val_rec": stats["recall"].mean(),
-                        "val_f1": stats["f1"].mean(),
-                        "val_iou": stats["iou"].mean(),
-                        "val_dice": stats["dice"].mean(),
-                        "val_acc_std": stats["accuracy"].std(),
-                        "val_prec_std": stats["precision"].std(),
-                        "val_rec_std": stats["recall"].std(),
-                        "val_f1_std": stats["f1"].std(),
-                        "val_iou_std": stats["iou"].std(),
-                        "val_dice_std": stats["dice"].std(),
+                        "val_acc": stats["accuracy"],
+                        "val_prec": stats["precision"],
+                        "val_rec": stats["recall"],
+                        "val_f1": stats["f1"],
+                        "val_iou": stats["iou"],
+                        "val_dice": stats["dice"],
                     }
                 )
 
@@ -435,32 +414,38 @@ class Trainer(ABC):
         self.model.eval()
 
         total_val_loss = 0
-        accs, precs, recs, f1s, ious, dice_scores = [], [], [], [], [], []
+        
+        TP = 0
+        TN = 0
+        FP = 0
+        FN = 0
         with torch.no_grad():
             for batch in loader:
                 val_loss, pred, target = self._forward_pass(batch)
                 total_val_loss += val_loss.item()
-
-                # Compute all metrics using torchmetrics
-                accs.append(binary_accuracy(pred, target).cpu().item())
-                precs.append(binary_precision(pred, target).cpu().item())
-                recs.append(binary_recall(pred, target).cpu().item())
-                f1s.append(binary_f1_score(pred, target).cpu().item())
-                iou = binary_jaccard_index(pred, target).cpu().item()
-                if not np.isnan(iou):
-                    ious.append(iou)
-                dice_scores.append(dice(pred, target).cpu().item())
+                
+                TP += ((pred == 1) & (target == 1)).sum().item()
+                TN += ((pred == 0) & (target == 0)).sum().item()
+                FP += ((pred == 1) & (target == 0)).sum().item()
+                FN += ((pred == 0) & (target == 1)).sum().item()
+            
+        acc = ((TP + TN) / (TP + TN + FP + FN))     if (TP + TN + FP + FN) != 0 else 0
+        prec = (TP / (TP + FP))                     if (TP + FP) != 0 else 0
+        rec = (TP / (TP + FN))                      if (TP + FN) != 0 else 0
+        f1 = (2 * prec * rec / (prec + rec))        if (prec + rec) != 0 else 0
+        iou = (TP / (TP + FP + FN))                 if (TP + FP + FN) != 0 else 0
+        dice_score = (2 * TP / (2 * TP + FP + FN))  if (2 * TP + FP + FN) != 0 else 0
 
         total_val_loss /= len(loader)
 
         stats = {
             "loss": total_val_loss,
-            "accuracy": np.asarray(accs),
-            "precision": np.asarray(precs),
-            "recall": np.asarray(recs),
-            "f1": np.asarray(f1s),
-            "iou": np.asarray(ious),
-            "dice": np.asarray(dice_scores),
+            "accuracy": acc,
+            "precision": prec,
+            "recall": rec,
+            "f1": f1,
+            "iou": iou,
+            "dice": dice_score,
         }
 
         return stats

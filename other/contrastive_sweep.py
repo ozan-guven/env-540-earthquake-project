@@ -11,7 +11,7 @@ import torch.nn as nn
 import wandb
 from torch.utils.data import DataLoader
 
-from src.contrastive.contrastive_dataset import ContrastiveDataset
+from contrastive.siamese_contrastive_dataset import ContrastiveDataset
 from src.contrastive.contrastive_loss import ContrastiveLoss
 from src.models.siamese import Siamese
 from trainers.trainer import Trainer

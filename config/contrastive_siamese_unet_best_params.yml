@@ -1,0 +1,11 @@
+use_scaler: True
+num_epochs: 200
+evaluation_steps: 1000
+
+accumulation_steps: 4
+learning_rate: 1e-5
+weight_decay: 1e-4
+dropout_rate: 0.0
+encoder_channels: [[3, 16, 16], [16, 32, 32], [32, 64, 64, 64], [64, 128, 128, 128], [128, 256, 256, 256]]
+embedding_size: 128
+contrastive_margin: 1.0

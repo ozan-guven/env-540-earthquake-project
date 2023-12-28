@@ -17,6 +17,7 @@ class SiameseUNetConcTrainer(UNetTrainer):
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
+        name: str = '',
     ) -> None:
         """
         Initialize the trainer.
@@ -28,6 +29,7 @@ class SiameseUNetConcTrainer(UNetTrainer):
             evaluation_steps (int): The number of steps to evaluate model
             print_statistics (bool, optional): Whether to print statistics, defaults to False
             use_scaler (bool, optional): Whether to use scaler, defaults to False
+            name (str, optional): The name of the trainer, defaults to ''
         """
         super().__init__(
             model=model,
@@ -36,4 +38,5 @@ class SiameseUNetConcTrainer(UNetTrainer):
             evaluation_steps=evaluation_steps,
             print_statistics=print_statistics,
             use_scaler=use_scaler,
+            name=name,
         )

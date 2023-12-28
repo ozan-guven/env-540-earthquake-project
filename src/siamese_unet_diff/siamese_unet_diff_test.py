@@ -11,14 +11,16 @@ import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
+import argparse
+
 import torch.nn as nn
 
-from src.config import SEED, DEVICE, BATCH_SIZE
 from src.utils.random import set_seed
+from src.utils.parser import get_config
+from src.config import SEED, DEVICE, BATCH_SIZE
 from src.models.siamese_unet_diff import SiameseUNetDiff
 from src.trainers.siamese_unet_diff_trainer import SiameseUNetDiffTrainer
 from src.utils.segmentation_train import get_dataloaders, get_criterion, get_optimizer
-from src.utils.parser import get_config
 
 DATA_PATH = str(GLOBAL_DIR / "data") + "/"
 MODELS_PATH = f'{DATA_PATH}models/'
@@ -80,6 +82,13 @@ def get_trainer(
 if __name__ == "__main__":
     set_seed(SEED)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--use_pretrained", action="store_true", help="Whether to use a pretrained model")
+    parser.add_argument("--freeze_encoder", action="store_true", help="Whether to freeze the encoder")
+    args = parser.parse_args()
+    use_pretrained = args.use_pretrained
+    freeze_encoder = args.freeze_encoder
+
     # Get parameters from config file
     config = get_config(f"{GLOBAL_DIR}/config/siamese_unet_diff_best_params.yml")
     encoder_channels = config["encoder_channels"]
@@ -109,9 +118,15 @@ if __name__ == "__main__":
         use_scaler=use_scaler,
     )
 
-    # Test the model
+    # Get weights
     model_save_dict = f'{MODELS_PATH}siameseunetdiff/'
-    model_save_path = sorted(os.listdir(model_save_dict))[-1]
+    model_save_path = sorted(os.listdir(model_save_dict))
+    model_save_paths = [l for l in model_save_path if ('pretrained' in l) == use_pretrained and ('frozen' in l) == freeze_encoder]
+    if len(model_save_paths) == 0:
+        raise ValueError("❌ No model found.")
+    model_save_path = model_save_paths[-1]
+
+    # Test the model
     statistics = trainer.test(
         model_path=f'{model_save_dict}{model_save_path}',
         train_loader=train_loader,

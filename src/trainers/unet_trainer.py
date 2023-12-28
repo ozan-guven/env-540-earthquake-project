@@ -24,6 +24,7 @@ class UNetTrainer(Trainer):
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
+        name: str = '',
     ) -> None:
         """
         Initialize the trainer.
@@ -43,6 +44,7 @@ class UNetTrainer(Trainer):
             evaluation_steps=evaluation_steps,
             print_statistics=print_statistics,
             use_scaler=use_scaler,
+            name=name,
         )
 
     def _get_name(
@@ -59,7 +61,8 @@ class UNetTrainer(Trainer):
         Returns:
             str: The name of the model
         """
-        name = self.model.__class__.__name__
+        name = self.name
+        name += self.model.__class__.__name__
         name += f"_{optimizer.__class__.__name__}optim"
         name += f"_{num_epochs}epochs"
         name += f"_{str(learning_rate).replace('.', '')}lr"

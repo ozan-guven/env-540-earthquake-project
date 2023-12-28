@@ -5,14 +5,14 @@ import sys
 from typing import List
 from pathlib import Path
 
-import pandas as pd
-
 GLOBAL_DIR = Path(__file__).parent / ".." / ".."
 sys.path.append(str(GLOBAL_DIR))
 
 import os
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
+import argparse
 
 import torch.nn as nn
 
@@ -82,6 +82,13 @@ def get_trainer(
 
 if __name__ == "__main__":
     set_seed(SEED)
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--use_pretrained", action="store_true", help="Whether to use a pretrained model")
+    parser.add_argument("--freeze_encoder", action="store_true", help="Whether to freeze the encoder")
+    args = parser.parse_args()
+    use_pretrained = args.use_pretrained
+    freeze_encoder = args.freeze_encoder
 
     # Get parameters from config file
     config = get_config(f"{GLOBAL_DIR}/config/unet_best_params.yml")
@@ -103,15 +110,21 @@ if __name__ == "__main__":
     criterion = get_criterion(criterion_name=loss_name)
     trainer = get_trainer(
         model, 
-        criterion,
+        criterion=criterion,
         accumulation_steps=accumulation_steps,
         evaluation_steps=evaluation_steps,
         use_scaler=use_scaler,
     )
 
-    # Test the model
+    # Get weights
     model_save_dict = f'{MODELS_PATH}unet/'
-    model_save_path = sorted(os.listdir(model_save_dict))[-1]
+    model_save_path = sorted(os.listdir(model_save_dict))
+    model_save_paths = [l for l in model_save_path if ('pretrained' in l) == use_pretrained and ('frozen' in l) == freeze_encoder]
+    if len(model_save_paths) == 0:
+        raise ValueError("❌ No model found.")
+    model_save_path = model_save_paths[-1]
+
+    # Test the model
     statistics = trainer.test(
         model_path=f'{model_save_dict}{model_save_path}',
         train_loader=train_loader,

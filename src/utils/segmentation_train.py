@@ -17,6 +17,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from src.data.segmentation_dataset import SegmentationDataset
+from src.data.contrastive_dataset import ContrastiveDataset
 from src.config import DEVICE, SEED, IMAGE_SIZE, POS_WEIGHT
 from src.utils.random import set_seed
 
@@ -107,20 +108,26 @@ def get_data_tuples(
     return values
 
 
-def get_split_data(use_intact: bool = False) -> (
-    Tuple[
-        List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
-        List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
-        List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
-    ]
-):
+def get_split_data(
+    use_intact: bool = False,
+    train_split: float = TRAIN_SPLIT,
+    test_split: float = TEST_SPLIT,
+    val_split: float = VAL_SPLIT,
+) -> Tuple[
+    List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
+    List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
+    List[Dict[str, List[Union[str, Tuple[str, Optional[str]]]]]],
+]:
     """
     Get the data split into train, test and val.
-    
+
     Args:
         use_intact (bool, optional): Whether to use intact images, defaults to False
+        train_split (float, optional): The proportion of the train set, defaults to TRAIN_SPLIT
+        test_split (float, optional): The proportion of the test set, defaults to TEST_SPLIT
+        val_split (float, optional): The proportion of the val set, defaults to VAL_SPLIT
     """
-    if np.abs(TRAIN_SPLIT + TEST_SPLIT + VAL_SPLIT - 1) > 1e-6:
+    if np.abs(train_split + test_split + val_split - 1) > 1e-6:
         raise ValueError("❌ The sum of the splits must be equal to 1.")
     """
     Get the data split into train, test and val.
@@ -138,69 +145,94 @@ def get_split_data(use_intact: bool = False) -> (
     random.shuffle(intact)
 
     # Split data into train, test and val, keeping the same proportion of damaged and intact images
-    train_data = (
-        damaged[: int(TRAIN_SPLIT * len(damaged))]
-        + (intact[: int(TRAIN_SPLIT * len(intact))] if use_intact else [])
+    train_data = damaged[: int(train_split * len(damaged))] + (
+        intact[: int(train_split * len(intact))] if use_intact else []
     )
-    test_data = (
-        damaged[
-            int(TRAIN_SPLIT * len(damaged)) : int(
-                (TRAIN_SPLIT + TEST_SPLIT) * len(damaged)
+    test_data = damaged[
+        int(train_split * len(damaged)) : int((train_split + test_split) * len(damaged))
+    ] + (
+        intact[
+            int(train_split * len(intact)) : int(
+                (train_split + test_split) * len(intact)
             )
         ]
-        + (intact[
-            int(TRAIN_SPLIT * len(intact)) : int(
-                (TRAIN_SPLIT + TEST_SPLIT) * len(intact)
-            )
-        ] if use_intact else [])
+        if use_intact
+        else []
     )
-    val_data = (
-        damaged[int((TRAIN_SPLIT + TEST_SPLIT) * len(damaged)) :]
-        + (intact[int((TRAIN_SPLIT + TEST_SPLIT) * len(intact)) :] if use_intact else [])
+    val_data = damaged[int((train_split + test_split) * len(damaged)) :] + (
+        intact[int((train_split + test_split) * len(intact)) :] if use_intact else []
     )
 
     return train_data, test_data, val_data
 
 
-def get_dataloaders(batch_size: int) -> Tuple[DataLoader, DataLoader, DataLoader]:
+def get_dataloaders(
+    batch_size: int, 
+    use_intact: bool = False, 
+    with_val: bool = True,
+    dataset_class: Union[SegmentationDataset, ContrastiveDataset] = SegmentationDataset,
+    train_split: float = TRAIN_SPLIT,
+    test_split: float = TEST_SPLIT,
+    val_split: float = VAL_SPLIT,
+) -> Tuple[DataLoader, DataLoader, Optional[DataLoader]]:
     """
     Get the train, test and val dataloaders.
 
     Args:
         batch_size (int): The batch size
+        use_intact (bool, optional): Whether to use intact images, defaults to False
+        with_val (bool, optional): Whether to use the validation set, defaults to True
+        dataset_class (Union[SegmentationDataset, ContrastiveDataset], optional): The dataset class, defaults to SegmentationDataset
+        train_split (float, optional): The proportion of the train set, defaults to TRAIN_SPLIT
+        test_split (float, optional): The proportion of the test set, defaults to TEST_SPLIT
+        val_split (float, optional): The proportion of the val set, defaults to VAL_SPLIT
 
     Returns:
-        Tuple[DataLoader, DataLoader, DataLoader]: Train, test and val dataloaders
+        DataLoader: Train dataloader
+        DataLoader: Test dataloader
+        DataLoader | None: Val dataloader, if with_val is True else None
     """
     set_seed(SEED)
-    train_data, test_data, val_data = get_split_data()
-
-    train_dataset = SegmentationDataset(
+    train_data, test_data, val_data = get_split_data(
+        use_intact=use_intact,
+        train_split=train_split,
+        test_split=test_split,
+        val_split=val_split,
+    )
+    train_dataset = dataset_class(
         train_data, image_size=IMAGE_SIZE, augment_data=True
     )
-    test_dataset = SegmentationDataset(
+    test_dataset = dataset_class(
         test_data, image_size=IMAGE_SIZE, augment_data=False
     )
-    val_dataset = SegmentationDataset(
+    val_dataset = dataset_class(
         val_data, image_size=IMAGE_SIZE, augment_data=False
     )
 
+    # Train
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=NUM_WORKERS,
     )
+    print(f"✅ Train dataloader length: {len(train_dataloader)}")
+
+    # Val
+    if not with_val:
+        test_dataset = torch.utils.data.ConcatDataset([test_dataset, val_dataset])
+        val_dataloader = None
+    else:
+        val_dataloader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False, num_workers=1
+        )
+        print(f"✅ Val dataloader length: {len(val_dataloader)}")
+
+    # Test
     test_dataloader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=False, num_workers=1
     )
-    val_dataloader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, num_workers=1
-    )
-
-    print(f"✅ Train dataloader length: {len(train_dataloader)}")
     print(f"✅ Test dataloader length: {len(test_dataloader)}")
-    print(f"✅ Val dataloader length: {len(val_dataloader)}")
 
     return train_dataloader, test_dataloader, val_dataloader
 
@@ -225,7 +257,9 @@ def get_criterion(criterion_name: str = "bce") -> nn.Module:
             return IoULoss().to(DEVICE)
 
 
-def get_optimizer(model: nn.Module, learning_rate: float, weight_decay: float) -> torch.optim:
+def get_optimizer(
+    model: nn.Module, learning_rate: float, weight_decay: float
+) -> torch.optim:
     """
     Get the optimizer.
 
@@ -237,4 +271,6 @@ def get_optimizer(model: nn.Module, learning_rate: float, weight_decay: float) -
     Returns:
         torch.optim: The optimizer
     """
-    return torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    return torch.optim.AdamW(
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
+    )
