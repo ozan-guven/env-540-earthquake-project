@@ -13,11 +13,11 @@ In this README, you will find instructions for setting up the project environmen
 ## Repository Contents
 
 * [📁 config](config): Contains configuration files for the models.
-* [📁 data](data): Contains the dataset and the pretrained model.
+* [📁 data](data): Contains the dataset and the pretrained models.
 * [📁 documents](documents): Contains the project report.
 * [📁 notebooks](notebooks): Contains the Jupyter notebook for running the inference.
 * [📁 scripts](reports): Contains the project report.
-* [📁 src](src): Contains the source code for the models.
+* [📁 src](src): Contains the source code for the training processes, the models, the loss functions.
 * [📄 environment.yml](environment.yml): Contains the Conda environment file.
 
 ## Installation Guide
