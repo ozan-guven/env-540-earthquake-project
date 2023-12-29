@@ -4,9 +4,9 @@
 
 This project focuses on the semantic segmentation of building damages resulting from the devastating earthquakes that struck the Kahramanmaraş region in Turkey in February 2023. The earthquakes, with magnitudes of Mw 7.8 and Mw 7.5, led to significant human casualties and extensive infrastructure damage, making the rapid and accurate assessment of building damages critical for effective disaster response and recovery.
 
-To address this challenge, we have leveraged advanced Deep Learning techniques, specifically convolutional neural networks (CNNs) with Early Fusion and Siamese architectures. What sets our approach apart is the incorporation of self-supervised learning through Siamese contrastive learning. This innovative approach enhances our models' ability to detect both subtle and significant alterations in the urban fabric caused by the seismic events.
+To address this challenge, we leveraged advanced Deep Learning techniques, specifically convolutional neural networks (CNNs) with Early Fusion and Siamese architectures. What sets our approach apart is the incorporation of self-supervised learning through Siamese contrastive learning. This innovative approach enhances our models' ability to detect both subtle and significant alterations in the urban fabric caused by the seismic events.
 
-One of the primary objectives of this project is to provide a comprehensive understanding of the extent and nature of building damages. We have meticulously labeled a dataset based on high-resolution optical satellite imagery captured before and after the earthquakes in the Kahramanmaraş region. This dataset serves as a valuable resource for training and evaluating our models.
+One of the primary objectives of this project is to provide a comprehensive understanding of the extent and nature of building damages. We meticulously labeled a dataset based on high-resolution optical satellite imagery captured before and after the earthquakes in the Kahramanmaraş region. This dataset serves as a valuable resource for training and evaluating our models.
 
 In this README, you will find instructions for setting up the project environment, running the code, and accessing the dataset.
 
@@ -43,7 +43,7 @@ It is recommended to create a new Conda environment for this project to manage d
 
 ```bash
 conda env create -f environment.yml
-conda activate dd
+conda activate ipeo
 ```
 
 ## Running the Code
