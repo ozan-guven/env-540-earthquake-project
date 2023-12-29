@@ -1,4 +1,4 @@
-# This file is used for visualising the data
+# This file is used for visualising the data.
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -67,7 +67,7 @@ def plot_pre_post_mask(
         ax.imshow(pred)
         ax.set_title("Prediction")
         ax.axis("off")
-        
+
         # Difference
         diff = torch.zeros_like(post_image)
         diff[(mask == 1) & (pred == 1)] = torch.Tensor([0, 1, 0])

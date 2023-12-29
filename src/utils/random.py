@@ -1,4 +1,3 @@
-### OK
 # This file contains code for setting random seeds, for reproducibility.
 
 import random

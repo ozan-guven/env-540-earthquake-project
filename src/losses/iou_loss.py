@@ -1,4 +1,6 @@
+# This file contains the IoU loss.
 # From: https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,8 +22,8 @@ class IoULoss(nn.Module):
         super(IoULoss, self).__init__()
 
     def forward(
-            self, inputs: torch.Tensor, targets: torch.Tensor, smooth: int = 1
-        ) -> torch.Tensor:
+        self, inputs: torch.Tensor, targets: torch.Tensor, smooth: int = 1
+    ) -> torch.Tensor:
         """
         Forward pass.
 

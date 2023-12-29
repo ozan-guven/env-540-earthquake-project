@@ -1,4 +1,3 @@
-### OK
 # This file contains the Encoder class, which is used in the UNet model.
 
 from typing import List

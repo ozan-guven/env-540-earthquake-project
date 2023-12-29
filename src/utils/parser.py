@@ -1,3 +1,5 @@
+# This file contains the parser for the config file
+
 import yaml
 from pathlib import Path
 

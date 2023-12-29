@@ -1,4 +1,3 @@
-### OK
 # This file contains the general implementation of a trainer for the UNet model.
 
 import torch

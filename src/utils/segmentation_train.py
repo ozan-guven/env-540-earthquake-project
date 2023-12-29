@@ -1,4 +1,4 @@
-# This file contains utility functions for training models
+# This file contains utility functions for training models.
 
 import sys
 from pathlib import Path

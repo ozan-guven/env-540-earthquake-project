@@ -1,4 +1,3 @@
-### OK
 # This file contains the UNet architecture.
 
 from typing import List

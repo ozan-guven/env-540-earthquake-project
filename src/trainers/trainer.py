@@ -1,4 +1,3 @@
-### OK
 # This file contains the general implementation of a trainer.
 
 import os
@@ -18,55 +17,8 @@ from torch.utils.data import DataLoader
 
 import pandas as pd
 
-from torchmetrics.functional.classification import (
-    binary_accuracy,
-    binary_precision,
-    binary_recall,
-    binary_f1_score,
-    binary_jaccard_index,
-    dice,
-)
-
 RESULTS_FOLDER_PATH = "../../data/results/"
 SAVE_STATS_PATH = f"{RESULTS_FOLDER_PATH}results.csv"
-
-
-class EarlyStopper:
-    """
-    Early stopper to stop the training if the validation loss does not improve for a certain number of epochs.
-    """
-
-    def __init__(self, patience: int = 10, min_delta: float = 0.0) -> None:
-        """
-        Initialize the early stopper.
-
-        Args:
-            patience (int, optional): The number of epochs to wait before stopping the training, defaults to 1
-            min_delta (float, optional): The minimum difference between the current validation loss and the previous best validation loss, defaults to 0.0
-        """
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.min_validation_loss = float("inf")
-
-    def early_stop(self, validation_loss: float) -> bool:
-        """
-        Check if the training should be stopped.
-
-        Args:
-            validation_loss (float): The current validation loss
-
-        Returns:
-            bool: Whether the training should be stopped
-        """
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
 
 
 class Trainer(ABC):
@@ -82,7 +34,7 @@ class Trainer(ABC):
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
-        name: str = '',
+        name: str = "",
     ) -> None:
         """
         Initialize the trainer.
@@ -227,50 +179,61 @@ class Trainer(ABC):
             wandb.finish()
 
         return statistics
-    
-    
-    def test(self, model_path: str, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader) -> dict:
+
+    def test(
+        self,
+        model_path: str,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        test_loader: DataLoader,
+    ) -> dict:
         # Load model
         self.model.load_state_dict(torch.load(model_path))
-        print('✅ Using model at ', model_path)
+        print("✅ Using model at ", model_path)
 
         # Create pandas dataframe to store results
         results = pd.DataFrame()
-        results.loc[0, 'name'] = self.model.__class__.__name__
-        
-        metrics = ['loss', 'accuracy', 'precision', 'recall', 'f1', 'iou', 'dice']
-        
-        print('📊 Results:')
-        for name, loader in [('train', train_loader), ('val', val_loader), ('test', test_loader)]:
+        results.loc[0, "name"] = self.model.__class__.__name__
+
+        metrics = ["loss", "accuracy", "precision", "recall", "f1", "iou", "dice"]
+
+        print("📊 Results:")
+        for name, loader in [
+            ("train", train_loader),
+            ("val", val_loader),
+            ("test", test_loader),
+        ]:
             stats = self._evaluate(loader, show_time=True)
             for metric in metrics:
                 col_name = f"{name}_{metric}"
-                
+
                 # Print results
                 metric_display = metric.capitalize()
-                if metric == 'loss':
+                if metric == "loss":
                     print(f"\t{name} {metric_display}: {stats[metric]:.4f}")
-                    
+
                     # Save the results to the dataframe
                     results.loc[0, col_name] = stats[metric]
                 else:
                     print(f"\t{name} {metric_display}: {stats[metric]:.4f}")
-                    
+
                     # Save the results to the dataframe
                     number = np.round(stats[metric] * 100, 2)
-                    results.loc[0, col_name] = rf"${number}$" # LaTeX format
-        
+                    results.loc[0, col_name] = rf"${number}$"  # LaTeX format
+
         # Create the folder if it does not exist
         os.makedirs(RESULTS_FOLDER_PATH, exist_ok=True)
-            
+
         # Save the results to a csv file
         if not os.path.isfile(SAVE_STATS_PATH):
-            results.to_csv(SAVE_STATS_PATH, index=False, sep='&')
+            results.to_csv(SAVE_STATS_PATH, index=False, sep="&")
         else:
-            results.to_csv(SAVE_STATS_PATH, mode='a', header=False, index=False, sep='&')
-        
+            results.to_csv(
+                SAVE_STATS_PATH, mode="a", header=False, index=False, sep="&"
+            )
+
         return stats
-        
+
     @abstractmethod
     def _forward_pass(
         self, batch: tuple
@@ -342,7 +305,9 @@ class Trainer(ABC):
                     }
                 )
 
-            if (batch_idx + 1) % self.evaluation_steps == 0 or (batch_idx + 1 == len(train_loader)):
+            if (batch_idx + 1) % self.evaluation_steps == 0 or (
+                batch_idx + 1 == len(train_loader)
+            ):
                 # Get and update training loss
                 self.eval_train_loss = total_train_loss / n_train_loss
                 statistics["train_loss"].append(train_loss)
@@ -353,7 +318,7 @@ class Trainer(ABC):
                 stats = self._evaluate(val_loader)
                 self.eval_val_loss = stats["loss"]
                 statistics["val_loss"].append(self.eval_val_loss)
-                
+
                 # Get validation iou and update best model
                 self.eval_val_iou = stats["iou"]
                 if self.eval_val_iou > self.best_eval_val_iou and save_path is not None:
@@ -394,7 +359,9 @@ class Trainer(ABC):
                     }
                 )
 
-    def _evaluate(self, loader: DataLoader, show_time: bool = False) -> dict[str, float]:
+    def _evaluate(
+        self, loader: DataLoader, show_time: bool = False
+    ) -> dict[str, float]:
         """
         Evaluate the model on the given loader.
 
@@ -414,7 +381,7 @@ class Trainer(ABC):
         self.model.eval()
 
         total_val_loss = 0
-        
+
         TP = 0
         TN = 0
         FP = 0
@@ -424,7 +391,7 @@ class Trainer(ABC):
             for batch in loader:
                 val_loss, pred, target = self._forward_pass(batch)
                 total_val_loss += val_loss.item()
-                
+
                 TP += ((pred == 1) & (target == 1)).sum().item()
                 TN += ((pred == 0) & (target == 0)).sum().item()
                 FP += ((pred == 1) & (target == 0)).sum().item()
@@ -432,13 +399,13 @@ class Trainer(ABC):
 
             if show_time:
                 print(f"⏲️ Time taken for evaluation: {time.time() - start_time:.4f}s")
-            
-        acc = ((TP + TN) / (TP + TN + FP + FN))     if (TP + TN + FP + FN) != 0 else 0
-        prec = (TP / (TP + FP))                     if (TP + FP) != 0 else 0
-        rec = (TP / (TP + FN))                      if (TP + FN) != 0 else 0
-        f1 = (2 * prec * rec / (prec + rec))        if (prec + rec) != 0 else 0
-        iou = (TP / (TP + FP + FN))                 if (TP + FP + FN) != 0 else 0
-        dice_score = (2 * TP / (2 * TP + FP + FN))  if (2 * TP + FP + FN) != 0 else 0
+
+        acc = ((TP + TN) / (TP + TN + FP + FN)) if (TP + TN + FP + FN) != 0 else 0
+        prec = (TP / (TP + FP)) if (TP + FP) != 0 else 0
+        rec = (TP / (TP + FN)) if (TP + FN) != 0 else 0
+        f1 = (2 * prec * rec / (prec + rec)) if (prec + rec) != 0 else 0
+        iou = (TP / (TP + FP + FN)) if (TP + FP + FN) != 0 else 0
+        dice_score = (2 * TP / (2 * TP + FP + FN)) if (2 * TP + FP + FN) != 0 else 0
 
         total_val_loss /= len(loader)
 

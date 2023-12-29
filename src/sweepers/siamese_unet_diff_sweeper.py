@@ -1,3 +1,5 @@
+# This file is used to sweep the hyperparameters of the SiameseUNetConc model.
+
 import sys
 from pathlib import Path
 
@@ -25,9 +27,7 @@ def train(config: dict = None) -> None:
     Args:
         config (dict, optional): The config, defaults to None
     """
-    train_dataloader, _, val_dataloader = get_dataloaders(
-        batch_size=BATCH_SIZE
-    )
+    train_dataloader, _, val_dataloader = get_dataloaders(batch_size=BATCH_SIZE)
     sweeper = Sweeper(model_class=SiameseUNetDiff, config=config)
     sweeper.train(train_loader=train_dataloader, val_loader=val_dataloader)
 

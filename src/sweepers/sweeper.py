@@ -1,4 +1,4 @@
-# Sweeper class for sweeping the parameter space of a model
+# This file is used to sweep the hyperparameters of a model.
 
 import wandb
 import numpy as np
@@ -23,6 +23,7 @@ class Sweeper:
     """
     Sweeper class for sweeping the parameter space of a model.
     """
+
     def __init__(
         self,
         model_class: str,
@@ -30,11 +31,11 @@ class Sweeper:
     ):
         """
         Initialize the Sweeper.
-        
+
         Args:
             model_class (str): The model class, for example "UNet"
             config (dict): The config
-        
+
         """
         self.config = config
         self.model_class = model_class
@@ -44,10 +45,10 @@ class Sweeper:
     def get_loss(self, config: dict) -> nn.Module:
         """
         Get the loss function.
-        
+
         Args:
             config (dict): The config
-            
+
         Returns:
             nn.Module: The loss function
         """
@@ -58,7 +59,7 @@ class Sweeper:
                 return IoULoss().to(DEVICE)
             case _:
                 return nn.BCEWithLogitsLoss(pos_weight=POS_WEIGHT).to(DEVICE)
-            
+
     def train(
         self,
         train_loader: DataLoader,
@@ -66,7 +67,7 @@ class Sweeper:
     ) -> None:
         """
         Train the model.
-        
+
         Args:
             train_loader (DataLoader): The train loader
             val_loader (DataLoader): The validation loader

@@ -9,6 +9,9 @@ from src.data.segmentation_dataset import SegmentationDataset
 
 
 class ContrastiveDataset(Dataset):
+    """
+    Dataset for contrastive learning.
+    """
     def __init__(
         self,
         data: list[Tuple[str, str, int]],
@@ -16,20 +19,22 @@ class ContrastiveDataset(Dataset):
         augment_data: bool = False,
         random_sample: bool = True,
     ):
-        """Initialize the paired satellite image dataset.
+        """
+        Initialize the paired satellite image dataset.
 
         Args:
             data (list[Tuple[str, str, int]]): List of tuples containing pre and post file paths and label
-            image_size (int, optional): Size of image. Defaults to 1024
-            augment_data (bool, optional): Augment data. Defaults to False
-            random_sample (bool, optional): Randomly sample data, otherwise iterate through all pairs, defaults to True.
+            image_size (int, optional): The size of image, defaults to 1024
+            augment_data (bool, optional): Whether to augment data, defaults to False
+            random_sample (bool, optional): Whether to randomly sample data, otherwise iterate through all pairs, defaults to True.
         """
         self.random_sample = random_sample
         self.dataset1 = SegmentationDataset(data, image_size, augment_data)
         self.dataset2 = SegmentationDataset(data, image_size, augment_data)
 
     def __len__(self) -> int:
-        """Get length of dataset.
+        """
+        Get length of dataset.
 
         Returns:
             len (int): Length of dataset.
@@ -37,10 +42,11 @@ class ContrastiveDataset(Dataset):
         return len(self.dataset1) * len(self.dataset2)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get item from dataset.
+        """
+        Get item from dataset.
 
         Args:
-            idx (int): Index of item. Not used as we are randomly sampling.
+            idx (int): The index of item.
 
         Returns:
             torch.Tensor: First pair of images

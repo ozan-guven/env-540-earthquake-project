@@ -4,11 +4,12 @@ from torch import nn
 
 from src.trainers.unet_trainer import UNetTrainer
 
+
 class SiameseUNetDiffTrainer(UNetTrainer):
     """
     Trainer class used to train a Siamese UNet with difference
     """
-    
+
     def __init__(
         self,
         model: nn.Module,
@@ -17,7 +18,7 @@ class SiameseUNetDiffTrainer(UNetTrainer):
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
-        name: str = '',
+        name: str = "",
     ) -> None:
         """
         Initialize the trainer.

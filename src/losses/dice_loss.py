@@ -1,9 +1,9 @@
+# This file contains the Dice loss.
 # From: https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import numpy as np
 
 
 class DiceLoss(nn.Module):
@@ -21,7 +21,9 @@ class DiceLoss(nn.Module):
         """
         super(DiceLoss, self).__init__()
 
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor, smooth: int = 1) -> torch.Tensor:
+    def forward(
+        self, inputs: torch.Tensor, targets: torch.Tensor, smooth: int = 1
+    ) -> torch.Tensor:
         """
         Forward pass.
 

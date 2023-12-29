@@ -1,4 +1,3 @@
-### OK
 # This file contains the implementation of the decoder for the UNet architecture.
 
 from typing import List

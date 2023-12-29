@@ -1,4 +1,3 @@
-### OK
 # This file contains the Siamese UNet architecture with difference.
 
 from typing import List

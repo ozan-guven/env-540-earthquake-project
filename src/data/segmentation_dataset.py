@@ -1,4 +1,3 @@
-### OK
 # This file contains the implementation of the dataset to train the models.
 
 import random
@@ -142,7 +141,7 @@ class SegmentationDataset(Dataset):
         try:
             post_image = np.array(Image.open(post_image_path).convert("RGB"))
         except:
-            print(f'❌ Error opening {post_image_path}, retrying...')
+            print(f"❌ Error opening {post_image_path}, retrying...")
             return self.__getitem__(idx)
         # The mask might be None if it does not exist, in that case, we create a black image
         label = None

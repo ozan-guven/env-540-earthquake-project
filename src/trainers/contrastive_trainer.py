@@ -1,3 +1,5 @@
+# This file contains the trainer for the Contrastive model.
+
 import wandb
 from tqdm import tqdm
 
@@ -18,14 +20,14 @@ class ContrastiveTrainer(Trainer):
     """
 
     def __init__(
-        self, 
-        model: nn.Module, 
-        criterion: nn.Module, 
-        accumulation_steps: int, 
+        self,
+        model: nn.Module,
+        criterion: nn.Module,
+        accumulation_steps: int,
         evaluation_steps: int,
         print_statistics: bool = False,
         use_scaler: bool = False,
-        name: str = '',
+        name: str = "",
     ):
         """
         Initialize the trainer.
@@ -50,8 +52,10 @@ class ContrastiveTrainer(Trainer):
             use_scaler=use_scaler,
             name=name,
         )
-            
-    def _get_name(self, optimizer: Optimizer, num_epochs: int, learning_rate: int) -> str:
+
+    def _get_name(
+        self, optimizer: Optimizer, num_epochs: int, learning_rate: int
+    ) -> str:
         """
         Get name of model.
 
@@ -66,8 +70,7 @@ class ContrastiveTrainer(Trainer):
         name = "contrastive"
         name += f"_{self.name}" if self.name is not None else ""
         return name
-        
-     
+
     def _forward_pass(self, batch: tuple) -> torch.Tensor:
         """
         Forward pass of the Contrastive model.
@@ -83,15 +86,14 @@ class ContrastiveTrainer(Trainer):
         x = x.to(DEVICE)
         y = y.to(DEVICE)
         label = label.to(DEVICE)
-        
+
         # Forward pass
         with autocast(enabled=self.use_scaler):
             pre_embeddings, post_embeddings = self.model(x, y)
 
         # Compute loss
         return self.criterion(pre_embeddings, post_embeddings, label)
-    
-    
+
     def _train_one_epoch(
         self,
         train_loader: DataLoader,
@@ -143,7 +145,9 @@ class ContrastiveTrainer(Trainer):
                     }
                 )
 
-            if (batch_idx + 1) % self.evaluation_steps == 0 or (batch_idx + 1 == len(train_loader)):
+            if (batch_idx + 1) % self.evaluation_steps == 0 or (
+                batch_idx + 1 == len(train_loader)
+            ):
                 # Get and update training loss
                 self.eval_train_loss = total_train_loss / n_train_loss
                 statistics["train_loss"].append(train_loss)
@@ -154,9 +158,14 @@ class ContrastiveTrainer(Trainer):
                 stats = self._evaluate(val_loader)
                 self.eval_val_loss = stats["loss"]
                 statistics["val_loss"].append(self.eval_val_loss)
-                
-                if self.eval_val_loss < self.best_eval_val_loss and save_path is not None:
-                    print(f"🎉 Saving model with new best loss: {self.eval_val_loss:.4f}")
+
+                if (
+                    self.eval_val_loss < self.best_eval_val_loss
+                    and save_path is not None
+                ):
+                    print(
+                        f"🎉 Saving model with new best loss: {self.eval_val_loss:.4f}"
+                    )
                     torch.save(self.model.state_dict(), save_path)
                     self.best_eval_val_loss = self.eval_val_loss
 

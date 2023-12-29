@@ -1,4 +1,3 @@
-### OK
 # This script is used to train the UNet model.
 
 import sys
@@ -24,14 +23,14 @@ from src.utils.segmentation_train import get_dataloaders, get_criterion
 from src.utils.parser import get_config
 
 DATA_PATH = str(GLOBAL_DIR / "data") + "/"
-MODELS_PATH = f'{DATA_PATH}models/'
+MODELS_PATH = f"{DATA_PATH}models/"
 
 
 def get_model(
-        encoder_channels: List[List[int]],
-        decoder_channels: List[List[int]],
-        dropout_rate: float
-        ) -> nn.Module:
+    encoder_channels: List[List[int]],
+    decoder_channels: List[List[int]],
+    dropout_rate: float,
+) -> nn.Module:
     """
     Get the model.
 
@@ -46,17 +45,17 @@ def get_model(
     return UNet(
         encoder_channels=encoder_channels,
         decoder_channels=decoder_channels,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
     ).to(DEVICE)
 
 
 def get_trainer(
-        model: nn.Module, 
-        criterion: nn.Module, 
-        accumulation_steps: int,
-        evaluation_steps: int,
-        use_scaler: bool,
-        ) -> UNetTrainer:
+    model: nn.Module,
+    criterion: nn.Module,
+    accumulation_steps: int,
+    evaluation_steps: int,
+    use_scaler: bool,
+) -> UNetTrainer:
     """
     Get the trainer.
 
@@ -82,10 +81,16 @@ def get_trainer(
 
 if __name__ == "__main__":
     set_seed(SEED)
-    
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use_pretrained", action="store_true", help="Whether to use a pretrained model")
-    parser.add_argument("--freeze_encoder", action="store_true", help="Whether to freeze the encoder")
+    parser.add_argument(
+        "--use_pretrained",
+        action="store_true",
+        help="Whether to use a pretrained model",
+    )
+    parser.add_argument(
+        "--freeze_encoder", action="store_true", help="Whether to freeze the encoder"
+    )
     args = parser.parse_args()
     use_pretrained = args.use_pretrained
     freeze_encoder = args.freeze_encoder
@@ -109,7 +114,7 @@ if __name__ == "__main__":
     )
     criterion = get_criterion(criterion_name=loss_name)
     trainer = get_trainer(
-        model, 
+        model,
         criterion=criterion,
         accumulation_steps=accumulation_steps,
         evaluation_steps=evaluation_steps,
@@ -117,16 +122,20 @@ if __name__ == "__main__":
     )
 
     # Get weights
-    model_save_dict = f'{MODELS_PATH}unet/'
+    model_save_dict = f"{MODELS_PATH}unet/"
     model_save_path = sorted(os.listdir(model_save_dict))
-    model_save_paths = [l for l in model_save_path if ('pretrained' in l) == use_pretrained and ('frozen' in l) == freeze_encoder]
+    model_save_paths = [
+        l
+        for l in model_save_path
+        if ("pretrained" in l) == use_pretrained and ("frozen" in l) == freeze_encoder
+    ]
     if len(model_save_paths) == 0:
         raise ValueError("❌ No model found.")
     model_save_path = model_save_paths[-1]
 
     # Test the model
     statistics = trainer.test(
-        model_path=f'{model_save_dict}{model_save_path}',
+        model_path=f"{model_save_dict}{model_save_path}",
         train_loader=train_loader,
         val_loader=val_loader,
         test_loader=test_loader,

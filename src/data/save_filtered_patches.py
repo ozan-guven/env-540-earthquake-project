@@ -1,4 +1,3 @@
-### OK
 # This file contains a script to filter maxar patches. It creates a new 'maxar_filtered_patches' folder
 # containing all patches from the 'maxar_patches' folder. Files are saved in two folders: 'post' and 'pre',
 # each containing patches from the post and pre disaster images respectively. Any pre-image should have its

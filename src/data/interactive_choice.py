@@ -1,4 +1,3 @@
-### OK
 # This file contains a script to run a program that allows the user to review images and sort them
 # into damaged and intact folders. The program displays two images side by side and the user can choose
 # to keep the data (damaged) or discard it (intact).

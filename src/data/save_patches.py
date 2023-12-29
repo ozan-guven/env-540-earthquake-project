@@ -1,4 +1,3 @@
-### OK
 # This file contains a script to save patches from Maxar images. It creates a new 'maxar_patches' folder
 # containing all patches from the 'maxar' folder, but split into 1024x1024 patches. The script uses
 # ThreadPoolExecutor to save patches in parallel. A patch is only saved if it meets the following criteria:

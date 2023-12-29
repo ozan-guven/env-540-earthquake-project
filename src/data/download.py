@@ -1,4 +1,3 @@
-### OK
 # This file contains a script to download data from Maxar's Open Data Program. It creates a new 'maxar' folder
 # containing all data from the links.txt file. The data is sorted into pre and post earthquake folders based on
 # the date of the image. The script uses ThreadPoolExecutor to download files in parallel.

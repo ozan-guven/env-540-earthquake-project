@@ -1,4 +1,3 @@
-### OK
 # This file contains the Siamese UNet architecture with concatenation.
 
 from typing import List
