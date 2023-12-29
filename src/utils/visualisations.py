@@ -12,7 +12,8 @@ def plot_pre_post_mask(
     mask: Tensor,
     label: int,
     pred: Tensor = None,
-    is_normalised=True,
+    is_normalised: bool = True,
+    with_title: bool = True,
 ) -> None:
     """
     Plot the pre, post, mask and prediction images (if given) in a grid.
@@ -26,7 +27,7 @@ def plot_pre_post_mask(
         is_normalised (bool, optional): Whether the images are normalised, defaults to True
     """
 
-    plt.figure(figsize=(20, 4))
+    plt.figure(figsize=(20, 6))
     n_subplots = 3 if pred is None else 5
     gs = gridspec.GridSpec(1, n_subplots, width_ratios=[1] * n_subplots)
 
@@ -39,7 +40,7 @@ def plot_pre_post_mask(
         )
         pre_image = pre_image.clip(0, 1)
     ax.imshow(pre_image)
-    ax.set_title("Pre Image")
+    ax.set_title("Pre-Event Image")
     ax.axis("off")
 
     # post
@@ -51,7 +52,7 @@ def plot_pre_post_mask(
         )
         post_image = post_image.clip(0, 1)
     ax.imshow(post_image)
-    ax.set_title("Post Image")
+    ax.set_title("Post-Event Image")
     ax.axis("off")
 
     # mask
@@ -78,5 +79,7 @@ def plot_pre_post_mask(
         ax.axis("off")
 
     # label
-    plt.suptitle(f"{'Damaged' if label else 'Intact'} Sample ({label})")
+    if with_title:
+        plt.suptitle(f"{'Damaged' if label else 'Intact'} Sample ({label})")
+    plt.tight_layout()
     plt.show()

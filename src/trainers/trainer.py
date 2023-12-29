@@ -242,7 +242,7 @@ class Trainer(ABC):
         
         print('📊 Results:')
         for name, loader in [('train', train_loader), ('val', val_loader), ('test', test_loader)]:
-            stats = self._evaluate(loader)
+            stats = self._evaluate(loader, show_time=True)
             for metric in metrics:
                 col_name = f"{name}_{metric}"
                 
@@ -394,7 +394,7 @@ class Trainer(ABC):
                     }
                 )
 
-    def _evaluate(self, loader: DataLoader) -> dict[str, float]:
+    def _evaluate(self, loader: DataLoader, show_time: bool = False) -> dict[str, float]:
         """
         Evaluate the model on the given loader.
 
@@ -420,6 +420,7 @@ class Trainer(ABC):
         FP = 0
         FN = 0
         with torch.no_grad():
+            start_time = time.time()
             for batch in loader:
                 val_loss, pred, target = self._forward_pass(batch)
                 total_val_loss += val_loss.item()
@@ -428,6 +429,9 @@ class Trainer(ABC):
                 TN += ((pred == 0) & (target == 0)).sum().item()
                 FP += ((pred == 1) & (target == 0)).sum().item()
                 FN += ((pred == 0) & (target == 1)).sum().item()
+
+            if show_time:
+                print(f"⏲️ Time taken for evaluation: {time.time() - start_time:.4f}s")
             
         acc = ((TP + TN) / (TP + TN + FP + FN))     if (TP + TN + FP + FN) != 0 else 0
         prec = (TP / (TP + FP))                     if (TP + FP) != 0 else 0
