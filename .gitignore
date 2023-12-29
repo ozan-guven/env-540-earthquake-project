@@ -1,6 +1,7 @@
 data/*
 !data/models/
 !data/damaged.zip
+!data/best_model/
 
 wandb
 
