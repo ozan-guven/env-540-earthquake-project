@@ -16,7 +16,7 @@ In this README, you will find instructions for setting up the project environmen
 * [📁 data](data): Contains the dataset and the pretrained models.
 * [📁 documents](documents): Contains the project report.
 * [📁 notebooks](notebooks): Contains the Jupyter notebook for running the inference.
-* [📁 scripts](reports): Contains the project report.
+* [📁 scripts](reports): Contains the scripts used to run the hyperparameter tuning, training, and testing.
 * [📁 src](src): Contains the source code for the training processes, the models, the loss functions.
 * [📄 environment.yml](environment.yml): Contains the Conda environment file.
 
@@ -24,8 +24,8 @@ In this README, you will find instructions for setting up the project environmen
 
 Before beginning, ensure you have the following installed:
 
-* Python (version 3.11.5)
-* Conda (version 23.7.4)
+* Python (version >= 3.11.5)
+* Conda (version >= 23.7.4)
 * Git (for cloning the repository)
 
 ### Cloning the Repository
